@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Button } from '../../components/ui/button.jsx';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card.jsx';
 import { loadDashboard } from '../../api/dashboard.js';
 
 export default function HomePage() {
@@ -25,36 +27,48 @@ export default function HomePage() {
           <p>View workload, team activity, and delivery trends in one place.</p>
         </div>
         <div className="button-row">
-          <Link className="primary-button" to="/projects/new">New Project</Link>
-          <Link className="secondary-button" to="/projects">Open Projects</Link>
+          <Button asChild>
+            <Link to="/projects/new">New Project</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link to="/projects">Open Projects</Link>
+          </Button>
         </div>
       </section>
 
       <section className="grid four">
-        <article className="section-card"><span className="pill">Projects</span><h3>{stats.projects}</h3><p>Active project records</p></article>
-        <article className="section-card"><span className="pill">Teams</span><h3>{stats.teams}</h3><p>Team records in database</p></article>
-        <article className="section-card"><span className="pill">Tasks</span><h3>{stats.tasks}</h3><p>Task items being tracked</p></article>
-        <article className="section-card"><span className="pill">Velocity</span><h3>78%</h3><p>Delivery pace this sprint</p></article>
+        <Card><CardHeader><CardDescription>Projects</CardDescription><CardTitle>{stats.projects}</CardTitle></CardHeader><CardContent>Active project records</CardContent></Card>
+        <Card><CardHeader><CardDescription>Teams</CardDescription><CardTitle>{stats.teams}</CardTitle></CardHeader><CardContent>Team records in database</CardContent></Card>
+        <Card><CardHeader><CardDescription>Tasks</CardDescription><CardTitle>{stats.tasks}</CardTitle></CardHeader><CardContent>Task items being tracked</CardContent></Card>
+        <Card><CardHeader><CardDescription>Velocity</CardDescription><CardTitle>78%</CardTitle></CardHeader><CardContent>Delivery pace this sprint</CardContent></Card>
       </section>
 
       <section className="grid two">
-        <article className="section-card">
-          <h2>Workload chart</h2>
+        <Card>
+          <CardHeader>
+            <CardTitle>Workload chart</CardTitle>
+          </CardHeader>
+          <CardContent>
           <div className="dashboard-bars">
             <div><span style={{ width: '78%' }} /><small>Design</small></div>
             <div><span style={{ width: '54%' }} /><small>Development</small></div>
             <div><span style={{ width: '31%' }} /><small>QA</small></div>
             <div><span style={{ width: '68%' }} /><small>Deployment</small></div>
           </div>
-        </article>
-        <article className="section-card">
-          <h2>Activity stream</h2>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Activity stream</CardTitle>
+          </CardHeader>
+          <CardContent>
           <div className="timeline-list">
             <div className="timeline-item"><span>1</span><div><strong>Project kickoff</strong><p>New project request arrives and gets assigned.</p></div></div>
             <div className="timeline-item"><span>2</span><div><strong>Task creation</strong><p>Tasks and subtasks are broken down by team.</p></div></div>
             <div className="timeline-item"><span>3</span><div><strong>Status update</strong><p>Work moves from To Do to Done through the board.</p></div></div>
           </div>
-        </article>
+          </CardContent>
+        </Card>
       </section>
     </div>
   );

@@ -1,18 +1,41 @@
-import { useMemo, useState } from 'react';
-import { NavLink, Outlet, Link } from 'react-router-dom';
-import { Search, X } from 'lucide-react';
+import { useMemo, useState } from "react";
+import { Link, NavLink, Outlet } from "react-router-dom";
+import {
+  FolderKanban,
+  LayoutDashboard,
+  LogIn,
+  Search,
+  Users,
+} from "lucide-react";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInput,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarSeparator,
+  SidebarInset,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+import { Card, CardContent } from "@/components/ui/card";
 
 const navItems = [
-  { to: '/', label: 'Home' },
-  { to: '/projects', label: 'Projects' },
-  { to: '/projects/new', label: 'Create Project' },
-  { to: '/teams', label: 'Teams' },
-  { to: '/login', label: 'Login' }
+  { to: "/", label: "Home", icon: LayoutDashboard },
+  { to: "/projects", label: "Projects", icon: FolderKanban },
+  { to: "/projects/new", label: "Create Project", icon: FolderKanban },
+  { to: "/teams", label: "Teams", icon: Users },
+  { to: "/login", label: "Login", icon: LogIn },
 ];
 
 export default function AppLayout() {
-  const [query, setQuery] = useState('');
-  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
 
   const filteredNav = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -21,69 +44,70 @@ export default function AppLayout() {
   }, [query]);
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <Link to="/" className="brand">
-          <span>PM</span>
-          <div>
-            <strong>Project Hub</strong>
-            <small>Manage projects, teams, tasks</small>
+    <SidebarProvider>
+      <Sidebar variant="inset">
+        <SidebarHeader>
+          <Link to="/" className="flex items-center gap-3 rounded-lg px-2 py-1">
+            <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              PM
+            </div>
+            <div className="leading-tight">
+              <div className="font-semibold">Project Hub</div>
+              <div className="text-xs text-muted-foreground">Jira-style workspace</div>
+            </div>
+          </Link>
+          <SidebarInput
+            placeholder="Search navigation..."
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </SidebarHeader>
+
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {filteredNav.map((item) => (
+                  <SidebarMenuItem key={item.to}>
+                    <SidebarMenuButton
+                      render={
+                        <NavLink to={item.to} end={item.to === "/"}>
+                          <item.icon />
+                          <span>{item.label}</span>
+                        </NavLink>
+                      }
+                    />
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+
+        <SidebarSeparator />
+
+        <SidebarFooter>
+          <Card>
+            <CardContent className="p-4 text-sm text-muted-foreground">
+              Projects, teams, tasks, and subtasks stay in Supabase.
+            </CardContent>
+          </Card>
+        </SidebarFooter>
+      </Sidebar>
+
+      <SidebarInset>
+        <header className="flex items-center gap-3 border-b px-4 py-3 md:px-6">
+          <SidebarTrigger />
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Search className="size-4" />
+            <span>Workspace</span>
           </div>
-        </Link>
-        <div className="sidebar-search">
-          <button type="button" className="floating-search-btn w-full justify-start" onClick={() => setOpen(true)}>
-            <Search size={16} aria-hidden="true" />
-            Search
-          </button>
-        </div>
-        <nav className="side-nav">
-          {navItems.map((item) => (
-            <NavLink key={item.to} to={item.to} end={item.to === '/'}>
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-        <div className="sidebar-note">
-          <strong>Workspace</strong>
-          <p>Track projects, assign teams, create tasks, and manage subtasks with CRUD-backed data.</p>
-        </div>
-      </aside>
-      <div className="main-shell">
-        <header className="mobile-topbar">
-          <Link to="/" className="brand small"><span>PM</span><strong>Project Hub</strong></Link>
-          <button type="button" className="nav-search-btn" aria-label="Open search" onClick={() => setOpen(true)}>
-            <Search size={18} aria-hidden="true" />
-          </button>
         </header>
-        <main className="main-content">
+        <main className="p-4 md:p-6">
           <Outlet />
         </main>
-      </div>
-
-      {open && (
-        <div className="search-overlay" role="dialog" aria-modal="true" aria-label="Search navigation" onClick={() => setOpen(false)}>
-          <div className="search-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="search-head">
-              <h3>Search navigation</h3>
-              <button type="button" className="search-close" onClick={() => setOpen(false)} aria-label="Close search">
-                <X size={16} aria-hidden="true" />
-              </button>
-            </div>
-            <input autoFocus type="text" placeholder="Search pages..." value={query} onChange={(e) => setQuery(e.target.value)} />
-            <div className="search-results">
-              {filteredNav.map((item) => (
-                <Link key={item.to} to={item.to} className="search-item" onClick={() => setOpen(false)}>
-                  <div>
-                    <strong>{item.label}</strong>
-                    <small>Navigation</small>
-                  </div>
-                  <span>Page</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
