@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/button.jsx';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card.jsx';
 import { Input } from '../../components/ui/input.jsx';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select.jsx';
 import { Textarea } from '../../components/ui/textarea.jsx';
-import { Select } from '../../components/ui/select.jsx';
 import { projectsApi } from '../../api/projects.js';
 
 const initial = {
@@ -43,11 +43,16 @@ export default function ProjectCreatePage() {
           <Input placeholder="Start date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
           <Input placeholder="Deadline" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} />
           <Textarea placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          <Select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-            <option>Planning</option>
-            <option>Active</option>
-            <option>At Risk</option>
-            <option>Done</option>
+          <Select value={form.status} onValueChange={(value) => setForm({ ...form, status: value })}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Planning">Planning</SelectItem>
+              <SelectItem value="Active">Active</SelectItem>
+              <SelectItem value="At Risk">At Risk</SelectItem>
+              <SelectItem value="Done">Done</SelectItem>
+            </SelectContent>
           </Select>
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
           <Button type="submit">Save Project</Button>

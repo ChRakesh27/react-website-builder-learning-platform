@@ -4,7 +4,7 @@ import { Filter, Search, Users, CalendarDays, Flag, Circle, CheckCircle2, Ellips
 import { Button } from '../../components/ui/button.jsx';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card.jsx';
 import { Input } from '../../components/ui/input.jsx';
-import { Select } from '../../components/ui/select.jsx';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select.jsx';
 import { Textarea } from '../../components/ui/textarea.jsx';
 import { projectsApi } from '../../api/projects.js';
 import { teamsApi } from '../../api/teams.js';
@@ -184,14 +184,38 @@ export default function ProjectsPage() {
               <div className="grid gap-3 md:grid-cols-2">
                 <Input placeholder="Assignee" value={taskForm.assignee} onChange={(e) => setTaskForm({ ...taskForm, assignee: e.target.value })} />
                 <Input placeholder="Project ID" value={taskForm.project_id} onChange={(e) => setTaskForm({ ...taskForm, project_id: e.target.value })} />
-                <Select value={taskForm.type} onChange={(e) => setTaskForm({ ...taskForm, type: e.target.value })}>
-                  <option>Task</option><option>Story</option><option>Epic</option><option>Bug</option>
+                <Select value={taskForm.type} onValueChange={(value) => setTaskForm({ ...taskForm, type: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Task type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Task">Task</SelectItem>
+                    <SelectItem value="Story">Story</SelectItem>
+                    <SelectItem value="Epic">Epic</SelectItem>
+                    <SelectItem value="Bug">Bug</SelectItem>
+                  </SelectContent>
                 </Select>
-                <Select value={taskForm.priority} onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value })}>
-                  <option>Low</option><option>Medium</option><option>High</option><option>Critical</option>
+                <Select value={taskForm.priority} onValueChange={(value) => setTaskForm({ ...taskForm, priority: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Low">Low</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="High">High</SelectItem>
+                    <SelectItem value="Critical">Critical</SelectItem>
+                  </SelectContent>
                 </Select>
-                <Select className="md:col-span-2" value={taskForm.status} onChange={(e) => setTaskForm({ ...taskForm, status: e.target.value })}>
-                  <option>To Do</option><option>In Progress</option><option>Review</option><option>Done</option>
+                <Select className="md:col-span-2" value={taskForm.status} onValueChange={(value) => setTaskForm({ ...taskForm, status: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="To Do">To Do</SelectItem>
+                    <SelectItem value="In Progress">In Progress</SelectItem>
+                    <SelectItem value="Review">Review</SelectItem>
+                    <SelectItem value="Done">Done</SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
               <Button type="submit">Create Task</Button>
