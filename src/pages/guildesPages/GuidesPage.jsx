@@ -1,6 +1,6 @@
-import PageHero from '../components/PageHero.jsx';
-import CopyBox from '../components/CopyBox.jsx';
-import { learningPath, setupSteps } from '../data/guides.js';
+import CopyBox from "../../components/CopyBox.jsx";
+import PageHero from "../../components/PageHero.jsx";
+import { learningPath, setupSteps } from "../../data/guides.js";
 
 export default function GuidesPage() {
   return (
@@ -12,19 +12,27 @@ export default function GuidesPage() {
       />
 
       <section className="section-block">
-        <div className="section-heading"><h2>Website creation roadmap</h2></div>
+        <div className="section-heading">
+          <h2>Website creation roadmap</h2>
+        </div>
         <div className="timeline-list">
           {learningPath.map((item) => (
             <article key={item.step} className="timeline-item">
               <span>{item.step}</span>
-              <div><h3>{item.title}</h3><p>{item.text}</p></div>
+              <div>
+                <h3>{item.title}</h3>
+                <p>{item.text}</p>
+              </div>
             </article>
           ))}
         </div>
       </section>
 
       <section className="section-block">
-        <div className="section-heading"><p className="eyebrow">React Setup</p><h2>Commands students should learn</h2></div>
+        <div className="section-heading">
+          <p className="eyebrow">React Setup</p>
+          <h2>Commands students should learn</h2>
+        </div>
         <div className="grid two">
           {setupSteps.map((step) => (
             <article className="command-card" key={step.title}>

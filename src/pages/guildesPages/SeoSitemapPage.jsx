@@ -1,6 +1,6 @@
-import PageHero from '../components/PageHero.jsx';
-import CopyBox from '../components/CopyBox.jsx';
-import { seoSteps } from '../data/guides.js';
+import CopyBox from "../../components/CopyBox.jsx";
+import PageHero from "../../components/PageHero.jsx";
+import { seoSteps } from "../../data/guides.js";
 
 const metaExample = `<title>Website Builder Learning Platform</title>
 <meta name="description" content="Learn website creation with React section examples, UI guidelines, SEO, sitemap and deployment steps." />
@@ -24,10 +24,22 @@ Sitemap: https://your-domain.com/sitemap.xml`;
 export default function SeoSitemapPage() {
   return (
     <>
-      <PageHero eyebrow="SEO + Sitemap" title="Make the website understandable for Google and users" description="Students learn titles, descriptions, headings, image alt text, sitemap.xml, robots.txt and Google Search Console submission flow." />
+      <PageHero
+        eyebrow="SEO + Sitemap"
+        title="Make the website understandable for Google and users"
+        description="Students learn titles, descriptions, headings, image alt text, sitemap.xml, robots.txt and Google Search Console submission flow."
+      />
       <section className="section-block">
         <div className="timeline-list">
-          {seoSteps.map((step, index) => <article className="timeline-item" key={step.title}><span>{String(index + 1).padStart(2, '0')}</span><div><h3>{step.title}</h3><p>{step.text}</p></div></article>)}
+          {seoSteps.map((step, index) => (
+            <article className="timeline-item" key={step.title}>
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <div>
+                <h3>{step.title}</h3>
+                <p>{step.text}</p>
+              </div>
+            </article>
+          ))}
         </div>
       </section>
       <section className="section-block two-column">

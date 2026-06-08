@@ -15,7 +15,9 @@ const navItems = [
   { to: '/seo-sitemap', label: 'SEO + Sitemap' },
   { to: '/deployment', label: 'Deployment' },
   { to: '/prompt-library', label: 'Prompts' },
-  { to: '/code-lab', label: 'Code Lab' }
+  { to: '/code-lab', label: 'Code Lab' },
+  { to: '/projects', label: 'Projects' },
+  { to: '/login', label: 'Login' }
 ];
 
 const searchItems = [

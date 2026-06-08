@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 :root {
   --primary: #2563eb;
   --primary-dark: #1d4ed8;
@@ -373,6 +375,7 @@ td code { background: #f1f5f9; color: #0f172a; padding: 3px 6px; border-radius: 
   font-weight: 700;
   margin-bottom: 16px;
 }
+
 
 .search-overlay {
   position: fixed;

@@ -1,5 +1,9 @@
-import PageHero from '../components/PageHero.jsx';
-import { typographyScale, spacingScale, breakpoints } from '../data/guides.js';
+import PageHero from "../../components/PageHero.jsx";
+import {
+  breakpoints,
+  spacingScale,
+  typographyScale,
+} from "../../data/guides.js";
 
 export default function TypographyPage() {
   return (
@@ -11,14 +15,35 @@ export default function TypographyPage() {
       />
 
       <section className="section-block">
-        <div className="section-heading"><h2>Font size list</h2><p>Use this as a safe starting point for modern websites.</p></div>
+        <div className="section-heading">
+          <h2>Font size list</h2>
+          <p>Use this as a safe starting point for modern websites.</p>
+        </div>
         <div className="table-wrap">
           <table>
-            <thead><tr><th>Text Type</th><th>Mobile</th><th>Tablet</th><th>Desktop</th><th>Line Height</th><th>Weight</th><th>Use</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Text Type</th>
+                <th>Mobile</th>
+                <th>Tablet</th>
+                <th>Desktop</th>
+                <th>Line Height</th>
+                <th>Weight</th>
+                <th>Use</th>
+              </tr>
+            </thead>
             <tbody>
               {typographyScale.map((row) => (
                 <tr key={row.name}>
-                  <td><strong>{row.name}</strong></td><td>{row.mobile}</td><td>{row.tablet}</td><td>{row.desktop}</td><td>{row.lineHeight}</td><td>{row.weight}</td><td>{row.use}</td>
+                  <td>
+                    <strong>{row.name}</strong>
+                  </td>
+                  <td>{row.mobile}</td>
+                  <td>{row.tablet}</td>
+                  <td>{row.desktop}</td>
+                  <td>{row.lineHeight}</td>
+                  <td>{row.weight}</td>
+                  <td>{row.use}</td>
                 </tr>
               ))}
             </tbody>
@@ -48,16 +73,32 @@ export default function TypographyPage() {
       </section>
 
       <section className="section-block">
-        <div className="section-heading"><h2>Spacing scale</h2></div>
+        <div className="section-heading">
+          <h2>Spacing scale</h2>
+        </div>
         <div className="grid four">
-          {spacingScale.map((item) => <article className="token-card" key={item.token}><strong>{item.token}</strong><span>{item.value}</span><p>{item.use}</p></article>)}
+          {spacingScale.map((item) => (
+            <article className="token-card" key={item.token}>
+              <strong>{item.token}</strong>
+              <span>{item.value}</span>
+              <p>{item.use}</p>
+            </article>
+          ))}
         </div>
       </section>
 
       <section className="section-block">
-        <div className="section-heading"><h2>Screen size checklist</h2></div>
+        <div className="section-heading">
+          <h2>Screen size checklist</h2>
+        </div>
         <div className="grid three">
-          {breakpoints.map((item) => <article className="info-panel" key={item.name}><h3>{item.name}</h3><strong>{item.width}</strong><p>{item.check}</p></article>)}
+          {breakpoints.map((item) => (
+            <article className="info-panel" key={item.name}>
+              <h3>{item.name}</h3>
+              <strong>{item.width}</strong>
+              <p>{item.check}</p>
+            </article>
+          ))}
         </div>
       </section>
     </>
