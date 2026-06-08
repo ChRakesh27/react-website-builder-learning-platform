@@ -1,0 +1,63 @@
+Create a complete React project called Website Builder Learning Platform.
+
+The website should help students learn how to create websites from planning to deployment.
+
+Main pages:
+1. Home
+2. Layout Library
+3. Section Library
+4. Section Detail Page
+5. React Setup Guide
+6. Naming Rules Guide
+7. UI/UX Checklist
+8. SEO + Sitemap Guide
+9. Deployment Guide
+10. Prompt Library
+
+For every section like Navbar, Hero, About, Services, Features, Pricing, Testimonials, FAQ, Contact and Footer, include:
+- What this section is
+- Why it is used
+- Where it should be placed
+- Different layout examples
+- UI guidelines
+- Do points
+- Don't points
+- Copy AI prompt
+- React code example
+
+The project should include:
+- Reusable components
+- Data files
+- Copy buttons for prompts and code
+- Clear folder structure
+- Student-friendly explanations
+- SEO meta example
+- sitemap.xml example
+- robots.txt example
+- Deployment checklist
+
+Design style:
+- Clean
+- Modern
+- Responsive
+- Rounded cards
+- Soft shadows
+- Simple English
+- Student-friendly UI
+
+Naming rules guide should explain:
+- camelCase
+- PascalCase
+- kebab-case
+- UPPERCASE_WITH_UNDERSCORE
+- File names
+- Folder names
+- Component names
+- Variable names
+- Function names
+- Hooks
+- Constants
+- CSS class names
+- Routes
+- Image names
+- Git branch names

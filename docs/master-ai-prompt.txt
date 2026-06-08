@@ -1,0 +1,29 @@
+Create a complete React + Vite learning platform called Website Builder Learning Platform.
+
+The website should help students learn how to create websites from A to Z.
+
+Include these pages:
+- Home
+- A-Z Section Library
+- Section Details
+- Layout Library
+- End-to-End Guide
+- Typography / Font Size Guide
+- Naming Rules Guide
+- Style Guide
+- UI/UX Checklist
+- SEO + Sitemap Guide
+- Deployment Guide
+- Prompt Library
+- Code Lab
+
+For every section guide, include:
+- What the section is
+- When to use it
+- Different layout examples
+- Design guidelines
+- Do and don't points
+- Copy AI prompt
+- Copy React code
+
+Use clean responsive UI, modern cards, strong typography, consistent colors, rounded corners, good spacing and mobile-first design.
