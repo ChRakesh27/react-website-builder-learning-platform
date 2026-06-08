@@ -1,18 +1,18 @@
 import { Route, Routes } from "react-router-dom";
 import AppLayout from "../components/AppLayout.jsx";
-import ChecklistPage from "../pages/ChecklistPage.jsx";
-import CodeLabPage from "../pages/CodeLabPage.jsx";
-import DeploymentPage from "../pages/DeploymentPage.jsx";
-import GuidesPage from "../pages/GuidesPage.jsx";
-import Home from "../pages/Home.jsx";
-import LayoutsPage from "../pages/LayoutsPage.jsx";
-import NamingRulesPage from "../pages/NamingRulesPage.jsx";
-import PromptLibraryPage from "../pages/PromptLibraryPage.jsx";
-import SectionDetailsPage from "../pages/SectionDetailsPage.jsx";
-import SectionsPage from "../pages/SectionsPage.jsx";
-import SeoSitemapPage from "../pages/SeoSitemapPage.jsx";
-import StyleGuidePage from "../pages/StyleGuidePage.jsx";
-import TypographyPage from "../pages/TypographyPage.jsx";
+import ChecklistPage from "../pages/guildesPages/ChecklistPage.jsx";
+import CodeLabPage from "../pages/guildesPages/CodeLabPage.jsx";
+import DeploymentPage from "../pages/guildesPages/DeploymentPage.jsx";
+import GuidesPage from "../pages/guildesPages/GuidesPage.jsx";
+import Home from "../pages/guildesPages/Home.jsx";
+import LayoutsPage from "../pages/guildesPages/LayoutsPage.jsx";
+import NamingRulesPage from "../pages/guildesPages/NamingRulesPage.jsx";
+import PromptLibraryPage from "../pages/guildesPages/PromptLibraryPage.jsx";
+import SectionDetailsPage from "../pages/guildesPages/SectionDetailsPage.jsx";
+import SectionsPage from "../pages/guildesPages/SectionsPage.jsx";
+import SeoSitemapPage from "../pages/guildesPages/SeoSitemapPage.jsx";
+import StyleGuidePage from "../pages/guildesPages/StyleGuidePage.jsx";
+import TypographyPage from "../pages/guildesPages/TypographyPage.jsx";
 
 function GuidesRoute() {
   return (

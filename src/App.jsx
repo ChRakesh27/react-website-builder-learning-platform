@@ -1,14 +1,25 @@
-import { Route, Routes } from "react-router-dom";
-import GuidesRoute from "./routes/GuidesRoute.jsx";
-import LoginPage from "./pages/LoginPage.jsx";
-import ProjectsPage from "./pages/ProjectsPage.jsx";
+import { Route, Routes } from 'react-router-dom';
+import AppLayout from './components/AppLayout.jsx';
+import LoginPage from './pages/authPages/LoginPage';
+import HomePage from './pages/pmsPage/HomePage.jsx';
+import ProjectsListPage from './pages/pmsPage/ProjectsListPage.jsx';
+import ProjectCreatePage from './pages/pmsPage/ProjectCreatePage.jsx';
+import ProjectDetailPage from './pages/pmsPage/ProjectDetailPage.jsx';
+import TaskDetailPage from './pages/pmsPage/TaskDetailPage.jsx';
+import TeamsPage from './pages/pmsPage/TeamsPage.jsx';
 
 export default function App() {
   return (
     <Routes>
+      <Route path="/" element={<AppLayout />}>
+        <Route index element={<HomePage />} />
+        <Route path="projects" element={<ProjectsListPage />} />
+        <Route path="projects/new" element={<ProjectCreatePage />} />
+        <Route path="projects/:id" element={<ProjectDetailPage />} />
+        <Route path="projects/:id/tasks/:taskId" element={<TaskDetailPage />} />
+        <Route path="teams" element={<TeamsPage />} />
+      </Route>
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/projects" element={<ProjectsPage />} />
-      <Route path="/*" element={<GuidesRoute />} />
     </Routes>
   );
 }

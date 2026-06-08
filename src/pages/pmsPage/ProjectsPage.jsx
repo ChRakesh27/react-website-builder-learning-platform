@@ -1,295 +1,253 @@
-import { Plus, Filter, Search, Users, CalendarDays, Flag, CheckCircle2, Circle, Ellipsis } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Filter, Search, Users, CalendarDays, Flag, Circle, CheckCircle2, Ellipsis } from 'lucide-react';
+import { Button } from '../../components/ui/button.jsx';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card.jsx';
+import { Input } from '../../components/ui/input.jsx';
+import { Select } from '../../components/ui/select.jsx';
+import { Textarea } from '../../components/ui/textarea.jsx';
+import { projectsApi } from '../../api/projects.js';
+import { teamsApi } from '../../api/teams.js';
+import { tasksApi } from '../../api/tasks.js';
+import { subtasksApi } from '../../api/subtasks.js';
 
-const projects = [
-  { name: 'Website Redesign', key: 'WEB', status: 'Active', progress: 72, owner: 'Rakesh', members: 8, due: 'Aug 18' },
-  { name: 'Mobile App Launch', key: 'MOB', status: 'At Risk', progress: 41, owner: 'Asha', members: 5, due: 'Aug 02' },
-  { name: 'SEO Migration', key: 'SEO', status: 'Planning', progress: 18, owner: 'Nikhil', members: 4, due: 'Aug 30' }
-];
+const emptyProject = { name: '', key: '', status: 'Planning', progress: 0, owner: '', members: 1, due: '' };
+const emptyTeam = { name: '', lead: '', members: 1 };
+const emptyTask = { title: '', type: 'Task', priority: 'Medium', status: 'To Do', assignee: '', project_id: '' };
+const emptySubtask = { title: '', task_id: '' };
 
-const tasks = [
-  {
-    id: 'PROJ-102',
-    title: 'Design dashboard overview screen',
-    type: 'Task',
-    priority: 'High',
-    status: 'In Progress',
-    assignee: 'Rakesh',
-    subtasks: 4,
-    checklist: 2,
-    due: 'Tomorrow'
-  },
-  {
-    id: 'PROJ-118',
-    title: 'Create sprint planning workflow',
-    type: 'Epic',
-    priority: 'Critical',
-    status: 'Review',
-    assignee: 'Asha',
-    subtasks: 8,
-    checklist: 6,
-    due: 'Aug 10'
-  },
-  {
-    id: 'PROJ-131',
-    title: 'Add team permission matrix',
-    type: 'Story',
-    priority: 'Medium',
-    status: 'To Do',
-    assignee: 'Nikhil',
-    subtasks: 3,
-    checklist: 1,
-    due: 'Aug 21'
-  }
-];
-
-const workflow = [
-  {
-    title: 'Backlog',
-    count: 12,
-    items: [
-      'Create release roadmap',
-      'Break down API contracts',
-      'Prepare QA checklist'
-    ]
-  },
-  {
-    title: 'In Progress',
-    count: 6,
-    items: [
-      'Design dashboard overview screen',
-      'Write component structure',
-      'Set up drag and drop board'
-    ]
-  },
-  {
-    title: 'Review',
-    count: 3,
-    items: [
-      'Approve sprint scope',
-      'Validate assigned subtasks',
-      'Check blockers with QA'
-    ]
-  },
-  {
-    title: 'Done',
-    count: 18,
-    items: [
-      'Create project templates',
-      'Build login page',
-      'Set up auth wrapper'
-    ]
-  }
-];
-
-const activity = [
-  'Rakesh moved PROJ-102 to In Progress',
-  'Asha assigned 3 subtasks to QA team',
-  'Nikhil added a blocker to PROJ-118',
-  'Sprint review scheduled for Friday'
-];
-
-function StatusPill({ children, tone = 'slate' }) {
-  const styles = {
-    slate: 'bg-slate-100 text-slate-700 border-slate-200',
-    blue: 'bg-blue-50 text-blue-700 border-blue-100',
-    amber: 'bg-amber-50 text-amber-700 border-amber-100',
-    red: 'bg-red-50 text-red-700 border-red-100',
-    green: 'bg-emerald-50 text-emerald-700 border-emerald-100'
-  };
-
+function StatCard({ label, value, description }) {
   return (
-    <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${styles[tone] || styles.slate}`}>
-      {children}
-    </span>
+    <Card>
+      <CardHeader>
+        <CardDescription>{label}</CardDescription>
+        <CardTitle className="text-3xl">{value}</CardTitle>
+      </CardHeader>
+      <CardContent>{description}</CardContent>
+    </Card>
   );
 }
 
 export default function ProjectsPage() {
+  const [projects, setProjects] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState('');
+  const [error, setError] = useState('');
+  const [projectForm, setProjectForm] = useState(emptyProject);
+  const [teamForm, setTeamForm] = useState(emptyTeam);
+  const [taskForm, setTaskForm] = useState(emptyTask);
+  const [subtaskForm, setSubtaskForm] = useState(emptySubtask);
+
+  async function loadData() {
+    setLoading(true);
+    const [p, t, ta] = await Promise.all([projectsApi.list(), teamsApi.list(), tasksApi.list()]);
+    if (p.error || t.error || ta.error) {
+      setError(p.error?.message || t.error?.message || ta.error?.message || 'Failed to load data.');
+    } else {
+      setProjects(p.data || []);
+      setTeams(t.data || []);
+      setTasks(ta.data || []);
+      setError('');
+    }
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const filteredProjects = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return projects;
+    return projects.filter((project) => [project.name, project.key, project.owner, project.status].join(' ').toLowerCase().includes(q));
+  }, [projects, query]);
+
+  const submitProject = async (event) => {
+    event.preventDefault();
+    const { error: insertError } = await projectsApi.create({
+      ...projectForm,
+      progress: Number(projectForm.progress || 0),
+      members: Number(projectForm.members || 0)
+    });
+    if (insertError) return setError(insertError.message);
+    setProjectForm(emptyProject);
+    await loadData();
+  };
+
+  const submitTeam = async (event) => {
+    event.preventDefault();
+    const { error: insertError } = await teamsApi.create({ ...teamForm, members: Number(teamForm.members || 0) });
+    if (insertError) return setError(insertError.message);
+    setTeamForm(emptyTeam);
+    await loadData();
+  };
+
+  const submitTask = async (event) => {
+    event.preventDefault();
+    const { error: insertError } = await tasksApi.create(taskForm);
+    if (insertError) return setError(insertError.message);
+    setTaskForm(emptyTask);
+    await loadData();
+  };
+
+  const submitSubtask = async (event) => {
+    event.preventDefault();
+    const { error: insertError } = await subtasksApi.create(subtaskForm);
+    if (insertError) return setError(insertError.message);
+    setSubtaskForm(emptySubtask);
+    await loadData();
+  };
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="border-b border-white/10 bg-slate-950/80 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-6 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-300">Project Management</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">Jira-style project control center</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
-              Plan projects, create tasks and subtasks, assign owners, track blockers, and move work through a team workflow.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <button className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-medium text-slate-950">
-              <Plus size={16} /> New Project
-            </button>
-            <button className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white">
-              <Plus size={16} /> New Task
-            </button>
-          </div>
+    <div className="space-y-6">
+      <section className="page-hero">
+        <div>
+          <p className="eyebrow">Project Management</p>
+          <h1>Projects</h1>
+          <p>Manage projects, teams, tasks, and subtasks.</p>
         </div>
-      </div>
+        <Button asChild>
+          <Link to="/projects/new">Create Project</Link>
+        </Button>
+      </section>
 
-      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 xl:grid-cols-[280px_1fr]">
-        <aside className="grid gap-4">
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-white">Projects</h2>
-              <StatusPill tone="blue">3 Active</StatusPill>
-            </div>
-            <div className="mt-4 grid gap-3">
-              {projects.map((project) => (
-                <div key={project.key} className="rounded-2xl border border-white/10 bg-slate-900/80 p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-semibold text-white">{project.name}</p>
-                      <p className="text-xs text-slate-400">{project.key}</p>
-                    </div>
-                    <StatusPill tone={project.status === 'Active' ? 'green' : project.status === 'At Risk' ? 'red' : 'amber'}>
-                      {project.status}
-                    </StatusPill>
-                  </div>
-                  <div className="mt-4 h-2 rounded-full bg-white/10">
-                    <div className="h-2 rounded-full bg-sky-400" style={{ width: `${project.progress}%` }} />
-                  </div>
-                  <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
-                    <span>{project.progress}% complete</span>
-                    <span>Due {project.due}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {loading ? <p className="text-sm text-slate-500">Loading data...</p> : null}
 
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
-            <h2 className="text-sm font-semibold text-white">Team overview</h2>
-            <div className="mt-4 grid gap-3 text-sm text-slate-300">
-              <div className="flex items-center justify-between rounded-2xl bg-slate-900/80 px-4 py-3">
-                <span className="inline-flex items-center gap-2"><Users size={16} /> Developers</span>
-                <span>12</span>
-              </div>
-              <div className="flex items-center justify-between rounded-2xl bg-slate-900/80 px-4 py-3">
-                <span className="inline-flex items-center gap-2"><Flag size={16} /> QA</span>
-                <span>5</span>
-              </div>
-              <div className="flex items-center justify-between rounded-2xl bg-slate-900/80 px-4 py-3">
-                <span className="inline-flex items-center gap-2"><CalendarDays size={16} /> Active sprints</span>
-                <span>2</span>
-              </div>
-            </div>
-          </div>
-        </aside>
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Projects" value={projects.length} description="Project records" />
+        <StatCard label="Teams" value={teams.length} description="Team records" />
+        <StatCard label="Tasks" value={tasks.length} description="Task records" />
+        <StatCard label="Subtasks" value={tasks.reduce((sum, task) => sum + (task.subtasks?.length || 0), 0)} description="Subtask records" />
+      </section>
 
-        <main className="grid gap-6">
-          <section className="grid gap-4 rounded-3xl border border-white/10 bg-white/5 p-4 lg:grid-cols-[1fr_auto_auto] lg:items-center">
-            <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3">
+      <Card>
+        <CardContent className="pt-6">
+          <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
+            <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2">
               <Search size={16} className="text-slate-400" />
-              <input
-                className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
-                placeholder="Search projects, tasks, subtasks..."
-              />
+              <Input className="border-0 p-0 shadow-none" placeholder="Search projects..." value={query} onChange={(e) => setQuery(e.target.value)} />
             </label>
-            <button className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm font-medium text-white">
-              <Filter size={16} /> Filters
-            </button>
-            <button className="inline-flex items-center justify-center gap-2 rounded-2xl bg-sky-500 px-4 py-3 text-sm font-medium text-white">
-              <Plus size={16} /> Add Issue
-            </button>
-          </section>
+            <Button variant="outline" type="button">
+              <Filter size={16} className="mr-2" />
+              Filters
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {[
-              { label: 'Open issues', value: '28', tone: 'blue' },
-              { label: 'In progress', value: '11', tone: 'amber' },
-              { label: 'Blocked', value: '4', tone: 'red' },
-              { label: 'Done this week', value: '19', tone: 'green' }
-            ].map((item) => (
-              <div key={item.label} className="rounded-3xl border border-white/10 bg-white/5 p-5">
-                <p className="text-sm text-slate-400">{item.label}</p>
-                <div className="mt-3 flex items-end justify-between">
-                  <strong className="text-4xl font-semibold text-white">{item.value}</strong>
-                  <StatusPill tone={item.tone}>Live</StatusPill>
-                </div>
+      <section className="grid gap-4 xl:grid-cols-3">
+        {filteredProjects.map((project) => (
+          <Card key={project.id}>
+            <CardHeader>
+              <CardDescription>{project.key}</CardDescription>
+              <CardTitle className="text-xl">{project.name}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-slate-600">{project.status || 'Planning'} • {project.owner || 'Unassigned'}</p>
+              <div className="space-y-2 text-sm text-slate-600">
+                <div className="flex items-center justify-between"><span className="inline-flex items-center gap-2"><Users size={14} /> Members</span><span>{project.members ?? 0}</span></div>
+                <div className="flex items-center justify-between"><span className="inline-flex items-center gap-2"><CalendarDays size={14} /> Due</span><span>{project.due || '-'}</span></div>
+                <div className="flex items-center justify-between"><span className="inline-flex items-center gap-2"><Flag size={14} /> Progress</span><span>{project.progress ?? 0}%</span></div>
               </div>
-            ))}
-          </section>
+              <div className="flex items-center gap-2">
+                <Button asChild variant="outline">
+                  <Link to={`/projects/${project.id}`}>Open</Link>
+                </Button>
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={async () => {
+                    await projectsApi.remove(project.id);
+                    await loadData();
+                  }}
+                >
+                  Delete
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </section>
 
-          <section className="grid gap-4 xl:grid-cols-3">
-            {tasks.map((task) => (
-              <article key={task.id} className="rounded-3xl border border-white/10 bg-white p-5 text-slate-950 shadow-xl shadow-slate-950/10">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{task.id}</p>
-                    <h3 className="mt-2 text-lg font-semibold">{task.title}</h3>
-                  </div>
-                  <Ellipsis size={18} className="text-slate-400" />
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <StatusPill tone="blue">{task.type}</StatusPill>
-                  <StatusPill tone={task.priority === 'Critical' ? 'red' : task.priority === 'High' ? 'amber' : 'slate'}>
-                    {task.priority}
-                  </StatusPill>
-                  <StatusPill tone={task.status === 'In Progress' ? 'blue' : task.status === 'Review' ? 'amber' : 'slate'}>
-                    {task.status}
-                  </StatusPill>
-                </div>
-                <div className="mt-5 grid gap-3 text-sm text-slate-600">
-                  <div className="flex items-center justify-between">
-                    <span className="inline-flex items-center gap-2"><Circle size={14} /> Assignee</span>
-                    <span className="font-medium text-slate-900">{task.assignee}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="inline-flex items-center gap-2"><CheckCircle2 size={14} /> Subtasks</span>
-                    <span className="font-medium text-slate-900">{task.subtasks}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="inline-flex items-center gap-2"><CheckCircle2 size={14} /> Checklist</span>
-                    <span className="font-medium text-slate-900">{task.checklist}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="inline-flex items-center gap-2"><CalendarDays size={14} /> Due</span>
-                    <span className="font-medium text-slate-900">{task.due}</span>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </section>
+      <section className="grid gap-4 xl:grid-cols-[1fr_0.8fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Create task</CardTitle>
+            <CardDescription>Add a new task to a project.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="grid gap-3" onSubmit={submitTask}>
+              <Input placeholder="Task title" value={taskForm.title} onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })} />
+              <div className="grid gap-3 md:grid-cols-2">
+                <Input placeholder="Assignee" value={taskForm.assignee} onChange={(e) => setTaskForm({ ...taskForm, assignee: e.target.value })} />
+                <Input placeholder="Project ID" value={taskForm.project_id} onChange={(e) => setTaskForm({ ...taskForm, project_id: e.target.value })} />
+                <Select value={taskForm.type} onChange={(e) => setTaskForm({ ...taskForm, type: e.target.value })}>
+                  <option>Task</option><option>Story</option><option>Epic</option><option>Bug</option>
+                </Select>
+                <Select value={taskForm.priority} onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value })}>
+                  <option>Low</option><option>Medium</option><option>High</option><option>Critical</option>
+                </Select>
+                <Select className="md:col-span-2" value={taskForm.status} onChange={(e) => setTaskForm({ ...taskForm, status: e.target.value })}>
+                  <option>To Do</option><option>In Progress</option><option>Review</option><option>Done</option>
+                </Select>
+              </div>
+              <Button type="submit">Create Task</Button>
+            </form>
+          </CardContent>
+        </Card>
 
-          <section className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-white">Workflow board</h2>
-                <StatusPill tone="slate">Drag and drop ready</StatusPill>
-              </div>
-              <div className="mt-5 grid gap-4 xl:grid-cols-4">
-                {workflow.map((column) => (
-                  <div key={column.title} className="rounded-2xl border border-white/10 bg-slate-900/80 p-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-white">{column.title}</h3>
-                      <span className="text-xs text-slate-400">{column.count}</span>
-                    </div>
-                    <div className="mt-4 grid gap-3">
-                      {column.items.map((item) => (
-                        <div key={item} className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-slate-200">
-                          {item}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Create subtask</CardTitle>
+            <CardDescription>Add a subtask under a task.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="grid gap-3" onSubmit={submitSubtask}>
+              <Input placeholder="Subtask title" value={subtaskForm.title} onChange={(e) => setSubtaskForm({ ...subtaskForm, title: e.target.value })} />
+              <Input placeholder="Task ID" value={subtaskForm.task_id} onChange={(e) => setSubtaskForm({ ...subtaskForm, task_id: e.target.value })} />
+              <Button type="submit">Create Subtask</Button>
+            </form>
+          </CardContent>
+        </Card>
+      </section>
 
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
-              <h2 className="text-lg font-semibold text-white">Recent activity</h2>
-              <div className="mt-4 grid gap-3">
-                {activity.map((item) => (
-                  <div key={item} className="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm text-slate-300">
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        </main>
-      </div>
+      <section className="grid gap-4 xl:grid-cols-[1fr_0.8fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>New project</CardTitle>
+            <CardDescription>Create project records in Supabase.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="grid gap-3" onSubmit={submitProject}>
+              <Input placeholder="Project name" value={projectForm.name} onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })} />
+              <Input placeholder="Key" value={projectForm.key} onChange={(e) => setProjectForm({ ...projectForm, key: e.target.value.toUpperCase() })} />
+              <Input placeholder="Owner" value={projectForm.owner} onChange={(e) => setProjectForm({ ...projectForm, owner: e.target.value })} />
+              <Input placeholder="Due date" value={projectForm.due} onChange={(e) => setProjectForm({ ...projectForm, due: e.target.value })} />
+              <Input placeholder="Members" type="number" value={projectForm.members} onChange={(e) => setProjectForm({ ...projectForm, members: e.target.value })} />
+              <Button type="submit">Create Project</Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>New team</CardTitle>
+            <CardDescription>Create a team and capture skills or role notes.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="grid gap-3" onSubmit={submitTeam}>
+              <Input placeholder="Team name" value={teamForm.name} onChange={(e) => setTeamForm({ ...teamForm, name: e.target.value })} />
+              <Input placeholder="Team lead" value={teamForm.lead} onChange={(e) => setTeamForm({ ...teamForm, lead: e.target.value })} />
+              <Input placeholder="Members" type="number" value={teamForm.members} onChange={(e) => setTeamForm({ ...teamForm, members: e.target.value })} />
+              <Textarea placeholder="Skills / roles" value={teamForm.skills} onChange={(e) => setTeamForm({ ...teamForm, skills: e.target.value })} />
+              <Button type="submit">Create Team</Button>
+            </form>
+          </CardContent>
+        </Card>
+      </section>
     </div>
   );
 }
