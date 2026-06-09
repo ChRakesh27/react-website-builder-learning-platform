@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/ui/button.jsx';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card.jsx';
@@ -11,6 +11,7 @@ export default function ProjectDetailPage() {
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
   const [tasks, setTasks] = useState([]);
+  const [activeTab, setActiveTab] = useState('description');
 
   useEffect(() => {
     (async () => {
@@ -23,6 +24,17 @@ export default function ProjectDetailPage() {
     })();
   }, [id]);
 
+  const tabs = useMemo(
+    () => [
+      { id: 'description', label: 'Description' },
+      { id: 'team', label: 'Team' },
+      { id: 'task', label: 'Task' },
+      { id: 'database', label: 'Database' },
+      { id: 'integration', label: 'Integration' }
+    ],
+    []
+  );
+
   if (!project) return <p className="text-sm text-slate-500">Loading project...</p>;
 
   return (
@@ -30,7 +42,7 @@ export default function ProjectDetailPage() {
       <section className="page-hero">
         <div>
           <p className="eyebrow">Project Detail</p>
-          <h1>{project.name}</h1>
+          <h1 className="text-2xl md:text-3xl">{project.name}</h1>
           <p>{project.description || 'No project description yet.'}</p>
         </div>
         <div className="button-row">
@@ -53,29 +65,30 @@ export default function ProjectDetailPage() {
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card><CardHeader><CardDescription>Start</CardDescription><CardTitle>{project.start_date || '-'}</CardTitle></CardHeader></Card>
-        <Card><CardHeader><CardDescription>Deadline</CardDescription><CardTitle>{project.deadline || '-'}</CardTitle></CardHeader></Card>
-        <Card><CardHeader><CardDescription>Owner</CardDescription><CardTitle>{project.owner || '-'}</CardTitle></CardHeader></Card>
-        <Card><CardHeader><CardDescription>Status</CardDescription><CardTitle>{project.status || 'Planning'}</CardTitle></CardHeader></Card>
+      <section className="flex flex-wrap gap-2 rounded-2xl border border-border bg-white p-2 shadow-sm">
+        {tabs.map((tab) => (
+          <Button
+            key={tab.id}
+            type="button"
+            variant={activeTab === tab.id ? 'default' : 'outline'}
+            onClick={() => setActiveTab(tab.id)}
+            className="rounded-full"
+          >
+            {tab.label}
+          </Button>
+        ))}
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Tasks</CardTitle>
-            <CardDescription>Click a task to open its subtasks.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {tasks.map((task) => (
-              <Button key={task.id} asChild variant="outline" className="w-full justify-start">
-                <Link to={`/projects/${id}/tasks/${task.id}`}>
-                  {task.title} - {task.status} - {task.priority}
-                </Link>
-              </Button>
-            ))}
-          </CardContent>
-        </Card>
+      {activeTab === 'description' ? (
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <Card><CardHeader><CardDescription>Start</CardDescription><CardTitle>{project.start_date || '-'}</CardTitle></CardHeader></Card>
+          <Card><CardHeader><CardDescription>Deadline</CardDescription><CardTitle>{project.deadline || '-'}</CardTitle></CardHeader></Card>
+          <Card><CardHeader><CardDescription>Owner</CardDescription><CardTitle>{project.owner || '-'}</CardTitle></CardHeader></Card>
+          <Card><CardHeader><CardDescription>Status</CardDescription><CardTitle>{project.status || 'Planning'}</CardTitle></CardHeader></Card>
+        </section>
+      ) : null}
+
+      {activeTab === 'team' ? (
         <Card>
           <CardHeader>
             <CardTitle>Team</CardTitle>
@@ -84,11 +97,55 @@ export default function ProjectDetailPage() {
           <CardContent className="space-y-2 text-sm text-slate-600">
             <p>Assigned team: {project.team_name || 'Not assigned yet'}</p>
             <p>Working users: {project.members || 0}</p>
-            <p>Start date: {project.start_date || '-'}</p>
-            <p>Deadline: {project.deadline || '-'}</p>
+            <p>Lead: {project.owner || '-'}</p>
           </CardContent>
         </Card>
-      </section>
+      ) : null}
+
+      {activeTab === 'task' ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Tasks</CardTitle>
+            <CardDescription>Click a task to open its subtasks.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {tasks.length ? tasks.map((task) => (
+              <Button key={task.id} asChild variant="outline" className="w-full justify-start">
+                <Link to={`/projects/${id}/tasks/${task.id}`}>
+                  {task.title} - {task.status} - {task.priority}
+                </Link>
+              </Button>
+            )) : <p className="text-sm text-slate-500">No tasks found for this project.</p>}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {activeTab === 'database' ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Database</CardTitle>
+            <CardDescription>Optional database information.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-slate-600">
+            <p>Database name: {project.database_name || 'Not added yet'}</p>
+            <p>Database plan: {project.database_plan || 'Not added yet'}</p>
+            <p>Account name: {project.account_name || 'Not added yet'}</p>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {activeTab === 'integration' ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Integration</CardTitle>
+            <CardDescription>Optional integration details.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-slate-600">
+            <p>Integration details are not stored in the current project record.</p>
+            <p>Add integrations in the create form if you want them saved in a future schema update.</p>
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }

@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, NavLink, Outlet, Navigate } from "react-router-dom";
 import {
   FolderKanban,
   LayoutDashboard,
@@ -25,9 +25,11 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Card, CardContent } from "@/components/ui/card";
+import { auth } from "../api/auth.js";
 
 const navItems = [
   { to: "/", label: "Home", icon: LayoutDashboard },
+  { to: "/search", label: "Search", icon: Search },
   { to: "/projects", label: "Projects", icon: FolderKanban },
   { to: "/projects/new", label: "Create Project", icon: FolderKanban },
   { to: "/teams", label: "Teams", icon: Users },
@@ -37,6 +39,16 @@ const navItems = [
 
 export default function AppLayout() {
   const [query, setQuery] = useState("");
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await auth.get();
+      setUser(data?.user || null);
+      setCheckingAuth(false);
+    })();
+  }, []);
 
   const filteredNav = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -46,6 +58,7 @@ export default function AppLayout() {
 
   return (
     <SidebarProvider>
+      {!checkingAuth && !user ? <Navigate to="/login" replace /> : null}
       <Sidebar variant="inset">
         <SidebarHeader>
           <Link to="/" className="flex items-center gap-3 rounded-lg px-2 py-1">
@@ -106,7 +119,7 @@ export default function AppLayout() {
           </div>
         </header>
         <main className="p-4 md:p-6">
-          <Outlet />
+          {checkingAuth ? <p className="text-sm text-muted-foreground">Checking session...</p> : <Outlet />}
         </main>
       </SidebarInset>
     </SidebarProvider>

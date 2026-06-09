@@ -8,6 +8,7 @@ import ProjectDetailPage from './pages/pmsPage/ProjectDetailPage.jsx';
 import TaskDetailPage from './pages/pmsPage/TaskDetailPage.jsx';
 import TeamsPage from './pages/pmsPage/TeamsPage.jsx';
 import TeamCreatePage from './pages/pmsPage/TeamCreatePage.jsx';
+import WorkspaceSearchPage from './pages/pmsPage/WorkspaceSearchPage.jsx';
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="projects/:id/tasks/:taskId" element={<TaskDetailPage />} />
         <Route path="teams" element={<TeamsPage />} />
         <Route path="teams/new" element={<TeamCreatePage />} />
+        <Route path="search" element={<WorkspaceSearchPage />} />
       </Route>
       <Route path="/login" element={<LoginPage />} />
     </Routes>
