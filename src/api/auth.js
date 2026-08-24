@@ -6,8 +6,8 @@ export const auth = {
     return { data: data?.user || null, error };
   },
   get: async () => {
-    const { data, error } = await supabase.auth.getUser();
-    return { data, error };
+    const { data, error } = await supabase.auth.getSession();
+    return { data: { user: data?.session?.user || null }, error };
   },
   update: async (updates) => {
     const { data, error } = await supabase.auth.updateUser(updates);
@@ -31,4 +31,7 @@ export const auth = {
     });
     return { data, error };
   },
+  onAuthStateChange: (callback) => {
+    return supabase.auth.onAuthStateChange(callback);
+  }
 };

@@ -40,11 +40,25 @@ export default function AppLayout() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    (async () => {
+    const checkUser = async () => {
       const { data } = await auth.get();
       setUser(data?.user || null);
       setCheckingAuth(false);
-    })();
+    };
+
+    checkUser();
+
+    const { data: authListener } = auth.onAuthStateChange?.((event, session) => {
+      if (event === 'SIGNED_IN') {
+        setUser(session?.user || null);
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+      }
+    }) || {};
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
   }, []);
 
   const filteredNav = useMemo(() => {
