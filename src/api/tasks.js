@@ -10,7 +10,10 @@ export const tasksApi = {
     const { data: user } = await auth.currentUser();
     return supabase.from('tasks').select('*, subtasks(*)').eq('id', id).eq('owner_id', user?.id || '').single();
   },
-  create: async (payload) => supabase.from('tasks').insert(payload).select().single(),
+  create: async (payload) => {
+    const { data: user } = await auth.currentUser();
+    return supabase.from('tasks').insert({ ...payload, owner_id: user?.id || null }).select().single();
+  },
   update: async (id, payload) => {
     const { data: user } = await auth.currentUser();
     return supabase.from('tasks').update(payload).eq('id', id).eq('owner_id', user?.id || '').select().single();

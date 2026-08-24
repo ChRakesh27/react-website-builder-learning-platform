@@ -6,7 +6,10 @@ export const subtasksApi = {
     const { data: user } = await auth.currentUser();
     return supabase.from('subtasks').select('*').eq('owner_id', user?.id || '').order('created_at', { ascending: false });
   },
-  create: async (payload) => supabase.from('subtasks').insert(payload).select().single(),
+  create: async (payload) => {
+    const { data: user } = await auth.currentUser();
+    return supabase.from('subtasks').insert({ ...payload, owner_id: user?.id || null }).select().single();
+  },
   update: async (id, payload) => {
     const { data: user } = await auth.currentUser();
     return supabase.from('subtasks').update(payload).eq('id', id).eq('owner_id', user?.id || '').select().single();

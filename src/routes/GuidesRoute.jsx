@@ -17,7 +17,7 @@ import TypographyPage from "../pages/guildesPages/TypographyPage.jsx";
 function GuidesRoute() {
   return (
     <Routes>
-      <Route path="/" element={<AppLayout />}>
+      <Route path="/">
         <Route index element={<Home />} />
         <Route path="sections" element={<SectionsPage />} />
         <Route path="sections/:slug" element={<SectionDetailsPage />} />
