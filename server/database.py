@@ -93,6 +93,25 @@ def create_project(title: str, description: str, owner_id: str, status: str = "P
     }).execute()
     return response.data[0] if response.data else {}
 
+def get_employees(owner_id: str | None = None) -> list:
+    """Fetch all employees from the database."""
+    query = supabase.table("employees").select("*")
+    if owner_id:
+        query = query.eq("owner_id", owner_id)
+    response = query.execute()
+    if getattr(response, "error", None):
+        raise RuntimeError(f"Failed to fetch employees: {response.error}")
+    print("[db] get_employees response:", response.data)
+    return response.data or []
+
+def get_employee(employee_id: str | int) -> dict:
+    """Fetch a single employee by id."""
+    resolved_employee_id = resolve_employee_id(employee_id)
+    if resolved_employee_id is None:
+        return {}
+    response = supabase.table("employees").select("*").eq("id", resolved_employee_id).limit(1).execute()
+    return response.data[0] if response.data else {}
+
 def create_employee(
     name: str,
     owner_id: str,
@@ -131,6 +150,37 @@ def create_employee(
         raise
     return response.data[0] if response.data else {}
 
+def update_employee(
+    employee_id: str | int,
+    owner_id: str,
+    name: str | None = None,
+    role: str | None = None,
+    email: str | None = None,
+    phone: str | None = None,
+    avatar_url: str | None = None,
+) -> dict:
+    """Update an employee record."""
+    resolved_employee_id = resolve_employee_id(employee_id)
+    if resolved_employee_id is None:
+        raise RuntimeError(f"Employee not found: {employee_id}")
+    payload = {k: v for k, v in {
+        "name": name,
+        "role": role,
+        "email": email,
+        "phone": phone,
+        "avatar_url": avatar_url,
+    }.items() if v is not None}
+    response = supabase.table("employees").update(payload).eq("id", resolved_employee_id).eq("owner_id", owner_id).execute()
+    return response.data[0] if response.data else {}
+
+def delete_employee(employee_id: str | int, owner_id: str) -> dict:
+    """Delete an employee record."""
+    resolved_employee_id = resolve_employee_id(employee_id)
+    if resolved_employee_id is None:
+        raise RuntimeError(f"Employee not found: {employee_id}")
+    response = supabase.table("employees").delete().eq("id", resolved_employee_id).eq("owner_id", owner_id).execute()
+    return response.data[0] if response.data else {}
+
 def get_tasks(project_id: str) -> list:
     """Fetch all tasks for a given project."""
     resolved_project_id = resolve_project_id(project_id)
@@ -151,6 +201,44 @@ def create_task(title: str, project_id: str, status: str = "Todo", task_type: st
     }).execute()
     return response.data[0] if response.data else {}
 
+def get_task(task_id: str | int) -> dict:
+    """Fetch a single task by id."""
+    if isinstance(task_id, int) or str(task_id).isdigit():
+        response = supabase.table("tasks").select("*").eq("id", int(task_id)).limit(1).execute()
+        return response.data[0] if response.data else {}
+    return {}
+
+def update_task(
+    task_id: str | int,
+    owner_id: str,
+    title: str | None = None,
+    status: str | None = None,
+    task_type: str | None = None,
+    priority: str | None = None,
+    assignee: str | None = None,
+    project_id: str | int | None = None,
+) -> dict:
+    """Update a task record."""
+    payload = {k: v for k, v in {
+        "title": title,
+        "status": status,
+        "type": task_type,
+        "priority": priority,
+        "assignee": assignee,
+    }.items() if v is not None}
+    if project_id is not None:
+        resolved_project_id = resolve_project_id(project_id)
+        if resolved_project_id is None:
+            raise RuntimeError(f"Project not found: {project_id}")
+        payload["project_id"] = resolved_project_id
+    response = supabase.table("tasks").update(payload).eq("id", int(task_id)).eq("owner_id", owner_id).execute()
+    return response.data[0] if response.data else {}
+
+def delete_task(task_id: str | int, owner_id: str) -> dict:
+    """Delete a task record."""
+    response = supabase.table("tasks").delete().eq("id", int(task_id)).eq("owner_id", owner_id).execute()
+    return response.data[0] if response.data else {}
+
 def assign_user_to_project(project_id: str, employee_id: str, role: str = "Member") -> dict:
     """Assign an employee/user to a project."""
     resolved_employee_id = resolve_employee_id(employee_id)
@@ -166,4 +254,46 @@ def assign_user_to_project(project_id: str, employee_id: str, role: str = "Membe
 def update_task_status(task_id: str, status: str) -> dict:
     """Update the status of a task."""
     response = supabase.table("tasks").update({"status": status}).eq("id", task_id).execute()
+    return response.data[0] if response.data else {}
+
+def get_subtasks(task_id: str | int | None = None) -> list:
+    """Fetch subtasks, optionally filtered by task."""
+    query = supabase.table("subtasks").select("*")
+    if task_id is not None:
+        query = query.eq("task_id", int(task_id))
+    response = query.execute()
+    return response.data or []
+
+def create_subtask(title: str, task_id: str, status: str | None = None, priority: str | None = None) -> dict:
+    """Create a subtask under a task."""
+    response = supabase.table("subtasks").insert({
+        "title": title,
+        "task_id": int(task_id),
+        "status": status,
+        "priority": priority,
+    }).execute()
+    return response.data[0] if response.data else {}
+
+def update_subtask(
+    subtask_id: str | int,
+    owner_id: str,
+    title: str | None = None,
+    status: str | None = None,
+    priority: str | None = None,
+    task_id: str | int | None = None,
+) -> dict:
+    """Update a subtask record."""
+    payload = {k: v for k, v in {
+        "title": title,
+        "status": status,
+        "priority": priority,
+    }.items() if v is not None}
+    if task_id is not None:
+        payload["task_id"] = int(task_id)
+    response = supabase.table("subtasks").update(payload).eq("id", int(subtask_id)).eq("owner_id", owner_id).execute()
+    return response.data[0] if response.data else {}
+
+def delete_subtask(subtask_id: str | int, owner_id: str) -> dict:
+    """Delete a subtask record."""
+    response = supabase.table("subtasks").delete().eq("id", int(subtask_id)).eq("owner_id", owner_id).execute()
     return response.data[0] if response.data else {}

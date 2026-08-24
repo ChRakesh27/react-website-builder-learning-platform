@@ -7,10 +7,10 @@ import uvicorn
 
 try:
     from .agent import agent
-    from .database import create_employee
+    from .database import create_employee, get_employees
 except ImportError:
     from agent import agent
-    from database import create_employee
+    from database import create_employee, get_employees
 
 app = FastAPI()
 
@@ -74,6 +74,35 @@ async def chat_endpoint(request: ChatRequest):
         except Exception as exc:
             print("[chat] employee create failed:", repr(exc))
             return ChatResponse(reply=f"Failed to create employee: {exc}")
+
+    if any(
+        phrase in normalized_message
+        for phrase in (
+            "total employees",
+            "how many employees",
+            "number of employees",
+            "list employees",
+            "show employees",
+            "employees are there",
+        )
+    ):
+        try:
+            employees = get_employees(request.owner_id)
+            count = len(employees)
+            print("[chat] employee count:", count)
+            if count == 0:
+                return ChatResponse(reply="There are currently no employees.")
+
+            names = []
+            for employee in employees[:10]:
+                label = employee.get("name") or employee.get("email") or "Unnamed employee"
+                names.append(f"- {label}")
+
+            suffix = "" if count <= 10 else f"\n- ...and {count - 10} more"
+            return ChatResponse(reply=f"There are {count} employee(s).\n" + "\n".join(names) + suffix)
+        except Exception as exc:
+            print("[chat] employee count failed:", repr(exc))
+            return ChatResponse(reply=f"Failed to fetch employees: {exc}")
 
     history_lines = []
     for item in request.history[-5:]:
