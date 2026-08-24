@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { User, Briefcase, ListTodo, Calendar, ArrowLeft } from 'lucide-react';
+import { User, Briefcase, ListTodo, Calendar, ArrowLeft, LayoutGrid, List } from 'lucide-react';
 import { Button } from '../../components/ui/button.jsx';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card.jsx';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table.jsx';
 import { employeesApi } from '../../api/employees.js';
 import { projectMembersApi } from '../../api/projectMembers.js';
 import { tasksApi } from '../../api/tasks.js';
@@ -28,6 +29,8 @@ export default function EmployeeDetailPage() {
   const [tasks, setTasks] = useState([]);
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(true);
+  const [viewModeProjects, setViewModeProjects] = useState('grid');
+  const [viewModeTasks, setViewModeTasks] = useState('grid');
 
   const tabs = useMemo(
     () => [
@@ -147,35 +150,76 @@ export default function EmployeeDetailPage() {
       {activeTab === 'projects' && (
         <Card>
           <CardHeader>
-            <CardTitle>Assigned Projects</CardTitle>
-            <CardDescription>Projects this employee is actively contributing to.</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Assigned Projects</CardTitle>
+                <CardDescription>Projects this employee is actively contributing to.</CardDescription>
+              </div>
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-md">
+                <Button variant={viewModeProjects === 'grid' ? 'default' : 'ghost'} size="sm" className="px-3" onClick={() => setViewModeProjects('grid')}>
+                  <LayoutGrid size={16} className="mr-2" />
+                  Grid
+                </Button>
+                <Button variant={viewModeProjects === 'table' ? 'default' : 'ghost'} size="sm" className="px-3" onClick={() => setViewModeProjects('table')}>
+                  <List size={16} className="mr-2" />
+                  Table
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {projects.length > 0 ? (
-              <div className="grid gap-4 md:grid-cols-2">
-                {projects.map((project) => (
-                  <Link to={`/projects/${project.id}`} key={project.id} className="block group">
-                    <div className="rounded-xl border border-border p-5 bg-white transition-all group-hover:border-black group-hover:shadow-md h-full">
-                      <div className="font-semibold text-lg text-black mb-2">{project.name}</div>
-                      <div className="text-sm text-slate-500 mb-4 line-clamp-2">
-                        {project.description || 'No description available.'}
-                      </div>
-                      <div className="flex flex-wrap gap-4 text-xs font-medium">
-                        <div className="flex items-center text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
-                          <Briefcase className="size-3 mr-1" />
-                          {project.status || 'Planning'}
+              viewModeProjects === 'grid' ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {projects.map((project) => (
+                    <Link to={`/projects/${project.id}`} key={project.id} className="block group">
+                      <div className="rounded-xl border border-border p-5 bg-white transition-all group-hover:border-black group-hover:shadow-md h-full">
+                        <div className="font-semibold text-lg text-black mb-2">{project.name}</div>
+                        <div className="text-sm text-slate-500 mb-4 line-clamp-2">
+                          {project.description || 'No description available.'}
                         </div>
-                        {project.deadline && (
-                          <div className="flex items-center text-orange-600 bg-orange-50 px-2 py-1 rounded-md">
-                            <Calendar className="size-3 mr-1" />
-                            Due: {project.deadline}
+                        <div className="flex flex-wrap gap-4 text-xs font-medium">
+                          <div className="flex items-center text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
+                            <Briefcase className="size-3 mr-1" />
+                            {project.status || 'Planning'}
                           </div>
-                        )}
+                          {project.deadline && (
+                            <div className="flex items-center text-orange-600 bg-orange-50 px-2 py-1 rounded-md">
+                              <Calendar className="size-3 mr-1" />
+                              Due: {project.deadline}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-md border border-border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Project Name</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Deadline</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {projects.map((project) => (
+                        <TableRow key={project.id}>
+                          <TableCell className="font-medium">
+                            <Link to={`/projects/${project.id}`} className="hover:underline">{project.name}</Link>
+                          </TableCell>
+                          <TableCell className="max-w-[300px] truncate">{project.description || '-'}</TableCell>
+                          <TableCell>{project.status || 'Planning'}</TableCell>
+                          <TableCell>{project.deadline || '-'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )
             ) : (
               <p className="text-sm text-slate-500">Not assigned to any projects yet.</p>
             )}
@@ -186,40 +230,85 @@ export default function EmployeeDetailPage() {
       {activeTab === 'tasks' && (
         <Card>
           <CardHeader>
-            <CardTitle>Tasks (Date Wise)</CardTitle>
-            <CardDescription>All tasks currently assigned to this employee, sorted by most recent.</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Tasks (Date Wise)</CardTitle>
+                <CardDescription>All tasks currently assigned to this employee, sorted by most recent.</CardDescription>
+              </div>
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-md">
+                <Button variant={viewModeTasks === 'grid' ? 'default' : 'ghost'} size="sm" className="px-3" onClick={() => setViewModeTasks('grid')}>
+                  <LayoutGrid size={16} className="mr-2" />
+                  Grid
+                </Button>
+                <Button variant={viewModeTasks === 'table' ? 'default' : 'ghost'} size="sm" className="px-3" onClick={() => setViewModeTasks('table')}>
+                  <List size={16} className="mr-2" />
+                  Table
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {tasks.length > 0 ? (
-              <div className="space-y-4">
-                {tasks.map((task) => (
-                  <div key={task.id} className="rounded-xl border border-border p-4 bg-white flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="space-y-1">
-                      <div className="font-semibold text-black">{task.title}</div>
-                      <div className="text-sm text-slate-500 flex items-center gap-2">
-                        <span>Project: <Link to={`/projects/${task.project_id}`} className="hover:underline font-medium text-black">{task.projectName}</Link></span>
-                        <span>•</span>
-                        <span>Created: {new Date(task.created_at).toLocaleDateString()}</span>
+              viewModeTasks === 'grid' ? (
+                <div className="space-y-4">
+                  {tasks.map((task) => (
+                    <div key={task.id} className="rounded-xl border border-border p-4 bg-white flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <div className="font-semibold text-black">{task.title}</div>
+                        <div className="text-sm text-slate-500 flex items-center gap-2">
+                          <span>Project: <Link to={`/projects/${task.project_id}`} className="hover:underline font-medium text-black">{task.projectName}</Link></span>
+                          <span>•</span>
+                          <span>Created: {new Date(task.created_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-slate-100 text-slate-700">
+                          {task.type || 'Task'}
+                        </span>
+                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                          task.priority === 'High' ? 'bg-red-50 text-red-700' :
+                          task.priority === 'Medium' ? 'bg-orange-50 text-orange-700' :
+                          'bg-blue-50 text-blue-700'
+                        }`}>
+                          {task.priority || 'Medium'}
+                        </span>
+                        <span className="text-xs px-2.5 py-1 rounded-full font-medium border">
+                          {task.status || 'To Do'}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-slate-100 text-slate-700">
-                        {task.type || 'Task'}
-                      </span>
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                        task.priority === 'High' ? 'bg-red-50 text-red-700' :
-                        task.priority === 'Medium' ? 'bg-orange-50 text-orange-700' :
-                        'bg-blue-50 text-blue-700'
-                      }`}>
-                        {task.priority || 'Medium'}
-                      </span>
-                      <span className="text-xs px-2.5 py-1 rounded-full font-medium border">
-                        {task.status || 'To Do'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-md border border-border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Task Title</TableHead>
+                        <TableHead>Project</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Priority</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Created</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {tasks.map((task) => (
+                        <TableRow key={task.id}>
+                          <TableCell className="font-medium">{task.title}</TableCell>
+                          <TableCell>
+                            <Link to={`/projects/${task.project_id}`} className="hover:underline">{task.projectName}</Link>
+                          </TableCell>
+                          <TableCell>{task.type || 'Task'}</TableCell>
+                          <TableCell>{task.priority || 'Medium'}</TableCell>
+                          <TableCell>{task.status || 'To Do'}</TableCell>
+                          <TableCell>{new Date(task.created_at).toLocaleDateString()}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )
             ) : (
               <p className="text-sm text-slate-500">No tasks currently assigned.</p>
             )}

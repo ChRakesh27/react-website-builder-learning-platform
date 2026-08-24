@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { PlusCircle, Users, ListTodo, FileText, Database, Plug, Trash2, Save, Plus } from 'lucide-react';
+import { PlusCircle, Users, ListTodo, FileText, Database, Plug, Trash2, Save, Plus, LayoutGrid, List } from 'lucide-react';
 import { Button } from '../../components/ui/button.jsx';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card.jsx';
 import { Input } from '../../components/ui/input.jsx';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select.jsx';
 import { Textarea } from '../../components/ui/textarea.jsx';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '../../components/ui/sheet.jsx';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table.jsx';
 import { projectsApi } from '../../api/projects.js';
 import { tasksApi } from '../../api/tasks.js';
 import { subtasksApi } from '../../api/subtasks.js';
@@ -33,6 +34,7 @@ export default function ProjectDetailPage() {
   const [openSubtaskFor, setOpenSubtaskFor] = useState('');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState('task');
+  const [tasksViewMode, setTasksViewMode] = useState('table');
 
   const [editForm, setEditForm] = useState({ name: '', start_date: '', deadline: '', status: 'Planning' });
 
@@ -301,10 +303,34 @@ export default function ProjectDetailPage() {
       {activeTab === 'task' ? (
         <Card>
           <CardHeader>
-            <CardTitle>Tasks</CardTitle>
-            <CardDescription>Use the sidebar to create tasks and subtasks.</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Tasks</CardTitle>
+                <CardDescription>Use the sidebar to create tasks and subtasks.</CardDescription>
+              </div>
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-md">
+                <Button
+                  variant={tasksViewMode === 'grid' ? 'default' : 'ghost'}
+                  size="sm"
+                  className="px-3"
+                  onClick={() => setTasksViewMode('grid')}
+                >
+                  <LayoutGrid size={16} className="mr-2" />
+                  Grid
+                </Button>
+                <Button
+                  variant={tasksViewMode === 'table' ? 'default' : 'ghost'}
+                  size="sm"
+                  className="px-3"
+                  onClick={() => setTasksViewMode('table')}
+                >
+                  <List size={16} className="mr-2" />
+                  Table
+                </Button>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
@@ -344,37 +370,88 @@ export default function ProjectDetailPage() {
             </div>
 
             {tasks.length ? (
-               tasks.map((task) => (
-                <div key={task.id} className="space-y-3 rounded-xl border border-border p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <Link to={`/projects/${id}/tasks/${task.id}`}>
-                      <Button variant="outline" className="justify-start">
-                        {task.title} - {task.status} - {task.priority}
-                      </Button>
-                    </Link>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setSheetMode('subtask');
-                        setOpenSubtaskFor(task.id);
-                        setSubtaskForm({ title: '', task_id: task.id });
-                        setSheetOpen(true);
-                      }}
-                    >
-                      <Plus className="mr-2 size-4" />
-                      Add Subtask
-                    </Button>
-                  </div>
-                  <div className="space-y-2">
-                    {(task.subtasks || []).map((subtask) => (
-                      <div key={subtask.id} className="rounded-lg border border-border px-3 py-2 text-sm text-black">
-                        {subtask.title}
+              tasksViewMode === 'grid' ? (
+                <div className="grid gap-4 xl:grid-cols-2">
+                  {tasks.map((task) => (
+                    <div key={task.id} className="space-y-3 rounded-xl border border-border p-4 bg-white shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <Link to={`/projects/${id}/tasks/${task.id}`}>
+                          <Button variant="outline" className="justify-start">
+                            {task.title} - {task.status} - {task.priority}
+                          </Button>
+                        </Link>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSheetMode('subtask');
+                            setOpenSubtaskFor(task.id);
+                            setSubtaskForm({ title: '', task_id: task.id });
+                            setSheetOpen(true);
+                          }}
+                        >
+                          <Plus className="mr-2 size-4" />
+                          Add Subtask
+                        </Button>
                       </div>
-                    ))}
-                  </div>
+                      <div className="space-y-2">
+                        {(task.subtasks || []).map((subtask) => (
+                          <div key={subtask.id} className="rounded-lg border border-border px-3 py-2 text-sm text-black bg-slate-50">
+                            {subtask.title}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))
+              ) : (
+                <div className="overflow-x-auto rounded-md border border-border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Task Title</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Priority</TableHead>
+                        <TableHead>Assignee</TableHead>
+                        <TableHead>Subtasks</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {tasks.map((task) => (
+                        <TableRow key={task.id}>
+                          <TableCell className="font-medium">
+                            <Link to={`/projects/${id}/tasks/${task.id}`} className="hover:underline">
+                              {task.title}
+                            </Link>
+                          </TableCell>
+                          <TableCell>{task.status}</TableCell>
+                          <TableCell>{task.priority}</TableCell>
+                          <TableCell>{task.assignee || 'Unassigned'}</TableCell>
+                          <TableCell>{task.subtasks?.length || 0}</TableCell>
+                          <TableCell>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSheetMode('subtask');
+                                setOpenSubtaskFor(task.id);
+                                setSubtaskForm({ title: '', task_id: task.id });
+                                setSheetOpen(true);
+                              }}
+                            >
+                              <Plus className="mr-2 size-4" />
+                              Add Subtask
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )
             ) : (
               <p className="text-sm text-slate-500">No tasks found for this project.</p>
             )}

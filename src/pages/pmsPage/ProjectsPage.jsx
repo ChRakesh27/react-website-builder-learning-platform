@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Filter, Search, Users, CalendarDays, Flag, Circle, CheckCircle2, Ellipsis } from 'lucide-react';
+import { Filter, Search, Users, CalendarDays, Flag, Circle, CheckCircle2, Ellipsis, LayoutGrid, List } from 'lucide-react';
 import { Button } from '../../components/ui/button.jsx';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card.jsx';
 import { Input } from '../../components/ui/input.jsx';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select.jsx';
 import { Textarea } from '../../components/ui/textarea.jsx';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table.jsx';
 import { projectsApi } from '../../api/projects.js';
 import { teamsApi } from '../../api/teams.js';
 import { tasksApi } from '../../api/tasks.js';
@@ -29,6 +30,7 @@ function StatCard({ label, value, description }) {
 }
 
 export default function ProjectsPage() {
+  const [viewMode, setViewMode] = useState('grid');
   const [projects, setProjects] = useState([]);
   const [teams, setTeams] = useState([]);
   const [tasks, setTasks] = useState([]);
@@ -130,47 +132,115 @@ export default function ProjectsPage() {
               <Search size={16} className="text-slate-400" />
               <Input className="border-0 p-0 shadow-none" placeholder="Search projects..." value={query} onChange={(e) => setQuery(e.target.value)} />
             </label>
-            <Button variant="outline" type="button">
-              <Filter size={16} className="mr-2" />
-              Filters
-            </Button>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-md">
+                <Button
+                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                  size="sm"
+                  className="px-3"
+                  onClick={() => setViewMode('grid')}
+                >
+                  <LayoutGrid size={16} className="mr-2" />
+                  Grid
+                </Button>
+                <Button
+                  variant={viewMode === 'table' ? 'default' : 'ghost'}
+                  size="sm"
+                  className="px-3"
+                  onClick={() => setViewMode('table')}
+                >
+                  <List size={16} className="mr-2" />
+                  Table
+                </Button>
+              </div>
+              <Button variant="outline" type="button">
+                <Filter size={16} className="mr-2" />
+                Filters
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      <section className="grid gap-4 xl:grid-cols-3">
-        {filteredProjects.map((project) => (
-          <Card key={project.id}>
-            <CardHeader>
-              <CardDescription>{project.key}</CardDescription>
-              <CardTitle className="text-xl">{project.name}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-slate-600">{project.status || 'Planning'} • {project.owner || 'Unassigned'}</p>
-              <div className="space-y-2 text-sm text-slate-600">
-                <div className="flex items-center justify-between"><span className="inline-flex items-center gap-2"><Users size={14} /> Members</span><span>{project.members ?? 0}</span></div>
-                <div className="flex items-center justify-between"><span className="inline-flex items-center gap-2"><CalendarDays size={14} /> Due</span><span>{project.due || '-'}</span></div>
-                <div className="flex items-center justify-between"><span className="inline-flex items-center gap-2"><Flag size={14} /> Progress</span><span>{project.progress ?? 0}%</span></div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button asChild variant="outline">
-                  <Link to={`/projects/${project.id}`}>Open</Link>
-                </Button>
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={async () => {
-                    await projectsApi.remove(project.id);
-                    await loadData();
-                  }}
-                >
-                  Delete
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </section>
+      {viewMode === 'grid' ? (
+        <section className="grid gap-4 xl:grid-cols-3">
+          {filteredProjects.map((project) => (
+            <Card key={project.id}>
+              <CardHeader>
+                <CardDescription>{project.key}</CardDescription>
+                <CardTitle className="text-xl">{project.name}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-slate-600">{project.status || 'Planning'} • {project.owner || 'Unassigned'}</p>
+                <div className="space-y-2 text-sm text-slate-600">
+                  <div className="flex items-center justify-between"><span className="inline-flex items-center gap-2"><Users size={14} /> Members</span><span>{project.members ?? 0}</span></div>
+                  <div className="flex items-center justify-between"><span className="inline-flex items-center gap-2"><CalendarDays size={14} /> Due</span><span>{project.due || '-'}</span></div>
+                  <div className="flex items-center justify-between"><span className="inline-flex items-center gap-2"><Flag size={14} /> Progress</span><span>{project.progress ?? 0}%</span></div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button asChild variant="outline">
+                    <Link to={`/projects/${project.id}`}>Open</Link>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={async () => {
+                      await projectsApi.remove(project.id);
+                      await loadData();
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </section>
+      ) : (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Project Name</TableHead>
+                <TableHead>Key</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Members</TableHead>
+                <TableHead>Due Date</TableHead>
+                <TableHead>Progress</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredProjects.map((project) => (
+                <TableRow key={project.id}>
+                  <TableCell className="font-medium">{project.name}</TableCell>
+                  <TableCell>{project.key}</TableCell>
+                  <TableCell>{project.status || 'Planning'}</TableCell>
+                  <TableCell>{project.members ?? 0}</TableCell>
+                  <TableCell>{project.due || '-'}</TableCell>
+                  <TableCell>{project.progress ?? 0}%</TableCell>
+                  <TableCell className="text-right space-x-2">
+                    <Button asChild variant="outline" size="sm">
+                      <Link to={`/projects/${project.id}`}>Open</Link>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      onClick={async () => {
+                        await projectsApi.remove(project.id);
+                        await loadData();
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
 
       <section className="grid gap-4 xl:grid-cols-[1fr_0.8fr]">
         <Card>
