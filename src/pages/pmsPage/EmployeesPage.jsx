@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/button.jsx';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card.jsx';
 import { Input } from '../../components/ui/input.jsx';
@@ -20,6 +20,7 @@ export default function EmployeesPage() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     (async () => {
@@ -36,6 +37,10 @@ export default function EmployeesPage() {
       [emp.name, emp.role, emp.email, emp.phone].join(' ').toLowerCase().includes(q)
     );
   }, [employees, query]);
+
+  const handleEmployeeClick = (emp) => {
+    navigate(`/employees/${emp.id}`);
+  };
 
   return (
     <div className="space-y-6">
@@ -65,7 +70,7 @@ export default function EmployeesPage() {
       <Card>
         <CardHeader>
           <CardTitle>Employee Directory</CardTitle>
-          <CardDescription>Employee records with avatars and details.</CardDescription>
+          <CardDescription>Employee records with avatars and details. Click an employee to view details.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -80,24 +85,25 @@ export default function EmployeesPage() {
               </thead>
               <tbody>
                 {filteredEmployees.map((emp) => (
-                  <tr key={emp.id} className="border-b">
+                  <tr key={emp.id} className="border-b hover:bg-slate-50 cursor-pointer" onClick={() => handleEmployeeClick(emp)}>
                     <td className="py-4 pr-4">
                       <div className="flex items-center gap-3">
                         <Avatar name={emp.name} src={emp.avatar_url} />
                         <div>
-                          <div className="font-medium">{emp.name}</div>
+                          <div className="font-medium text-black">{emp.name}</div>
                           <div className="text-muted-foreground">{emp.email || '-'}</div>
                         </div>
                       </div>
                     </td>
                     <td className="py-4 pr-4">{emp.role || '-'}</td>
                     <td className="py-4 pr-4">{emp.phone || '-'}</td>
-                    <td className="py-4 pr-4">
+                    <td className="py-4 pr-4" onClick={(e) => e.stopPropagation()}>
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
                           type="button"
                           onClick={async () => {
+                            if (!window.confirm("Are you sure you want to delete this employee?")) return;
                             await employeesApi.remove(emp.id);
                             const { data } = await employeesApi.list();
                             setEmployees(data || []);

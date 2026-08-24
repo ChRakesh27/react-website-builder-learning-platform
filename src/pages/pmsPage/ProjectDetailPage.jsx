@@ -471,13 +471,31 @@ export default function ProjectDetailPage() {
             ) : sheetMode === 'edit' ? (
               <form className="grid gap-3" onSubmit={async (e) => {
                 e.preventDefault();
-                const payload = { ...editForm };
-                if (!payload.start_date) payload.start_date = null;
-                if (!payload.deadline) payload.deadline = null;
-                const { error: updateError } = await projectsApi.update(id, payload);
-                if (updateError) return setError(updateError.message);
-                setSheetOpen(false);
-                await loadData();
+                try {
+                  console.log("=== STARTING PROJECT UPDATE ===");
+                  const payload = { ...editForm };
+                  if (!payload.start_date) payload.start_date = null;
+                  if (!payload.deadline) payload.deadline = null;
+                  
+                  console.log("Payload being sent:", payload);
+                  console.log("Project ID:", id);
+                  
+                  const response = await projectsApi.update(id, payload);
+                  
+                  console.log("Update response:", response);
+                  
+                  if (response.error) {
+                    console.error("Supabase API Error:", response.error);
+                    return setError(response.error.message || JSON.stringify(response.error));
+                  }
+                  
+                  setSheetOpen(false);
+                  await loadData();
+                  console.log("=== UPDATE SUCCESSFUL ===");
+                } catch (err) {
+                  console.error("Caught Exception during update:", err);
+                  setError(err.message || "An unexpected error occurred during update.");
+                }
               }}>
                 <div className="grid gap-2">
                   <label className="text-sm font-medium">Project Name</label>

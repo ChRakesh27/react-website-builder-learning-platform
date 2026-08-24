@@ -8,6 +8,7 @@ import ProjectDetailPage from './pages/pmsPage/ProjectDetailPage.jsx';
 import TaskDetailPage from './pages/pmsPage/TaskDetailPage.jsx';
 import EmployeesPage from './pages/pmsPage/EmployeesPage.jsx';
 import EmployeeCreatePage from './pages/pmsPage/EmployeeCreatePage.jsx';
+import EmployeeDetailPage from './pages/pmsPage/EmployeeDetailPage.jsx';
 import WorkspaceSearchPage from './pages/pmsPage/WorkspaceSearchPage.jsx';
 
 export default function App() {
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="projects/:id/tasks/:taskId" element={<TaskDetailPage />} />
         <Route path="employees" element={<EmployeesPage />} />
         <Route path="employees/new" element={<EmployeeCreatePage />} />
+        <Route path="employees/:id" element={<EmployeeDetailPage />} />
         <Route path="search" element={<WorkspaceSearchPage />} />
       </Route>
       <Route path="/login" element={<LoginPage />} />

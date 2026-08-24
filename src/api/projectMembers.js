@@ -11,6 +11,15 @@ export const projectMembersApi = {
       .eq('project_id', projectId)
       .order('created_at', { ascending: false });
   },
+  listByEmployee: async (employeeId) => {
+    const { data: user } = await auth.currentUser();
+    return supabase
+      .from('project_members')
+      .select('*, projects(*)')
+      .eq('owner_id', user?.id || '')
+      .eq('employee_id', employeeId)
+      .order('created_at', { ascending: false });
+  },
   create: async (payload) => {
     const { data: user } = await auth.currentUser();
     return supabase.from('project_members').insert({ ...payload, owner_id: user?.id || null }).select().single();
