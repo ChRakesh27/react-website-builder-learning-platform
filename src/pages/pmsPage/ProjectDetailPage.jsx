@@ -11,10 +11,11 @@ import { projectsApi } from '../../api/projects.js';
 import { tasksApi } from '../../api/tasks.js';
 import { subtasksApi } from '../../api/subtasks.js';
 import { projectMembersApi } from '../../api/projectMembers.js';
+import { employeesApi } from '../../api/employees.js';
 
 const emptyTask = { title: '', type: 'Task', priority: 'Medium', status: 'To Do', assignee: '', project_id: '' };
 const emptySubtask = { title: '', task_id: '' };
-const emptyMember = { name: '', role: '', email: '' };
+const emptyMember = { employee_id: '' };
 
 export default function ProjectDetailPage() {
   const { id } = useParams();
@@ -22,6 +23,7 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [members, setMembers] = useState([]);
+  const [globalEmployees, setGlobalEmployees] = useState([]);
   const [activeTab, setActiveTab] = useState('description');
   const [description, setDescription] = useState('');
   const [error, setError] = useState('');
@@ -31,6 +33,16 @@ export default function ProjectDetailPage() {
   const [openSubtaskFor, setOpenSubtaskFor] = useState('');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState('task');
+
+  const [editForm, setEditForm] = useState({ name: '', start_date: '', deadline: '', status: 'Planning' });
+
+  const globalEmployeeOptions = useMemo(
+    () => globalEmployees.map((emp) => ({
+      id: String(emp.id),
+      label: emp.name || `Employee ${emp.id}`
+    })),
+    [globalEmployees]
+  );
 
   const memberOptions = useMemo(
     () => members.map((member) => ({
@@ -43,7 +55,7 @@ export default function ProjectDetailPage() {
   const tabs = useMemo(
     () => [
       { id: 'description', label: 'Description', icon: FileText },
-      { id: 'team', label: 'Team', icon: Users },
+      { id: 'team', label: 'Employees', icon: Users },
       { id: 'task', label: 'Task', icon: ListTodo },
       { id: 'database', label: 'Database', icon: Database },
       { id: 'integration', label: 'Integration', icon: Plug }
@@ -52,9 +64,23 @@ export default function ProjectDetailPage() {
   );
 
   async function loadData() {
-    const [p, t, s, m] = await Promise.all([projectsApi.get(id), tasksApi.list(), subtasksApi.list(), projectMembersApi.list(id)]);
+    const [p, t, s, m, emps] = await Promise.all([
+      projectsApi.get(id),
+      tasksApi.list(),
+      subtasksApi.list(),
+      projectMembersApi.list(id),
+      employeesApi.list()
+    ]);
     setProject(p.data);
     setDescription(p.data?.description || '');
+    if (p.data) {
+      setEditForm({
+        name: p.data.name || '',
+        start_date: p.data.start_date || '',
+        deadline: p.data.deadline || '',
+        status: p.data.status || 'Planning'
+      });
+    }
     setTasks(
       (t.data || [])
         .filter((task) => String(task.project_id) === String(id))
@@ -64,6 +90,7 @@ export default function ProjectDetailPage() {
         }))
     );
     setMembers(m.data || []);
+    setGlobalEmployees(emps.data || []);
   }
 
   useEffect(() => {
@@ -81,15 +108,21 @@ export default function ProjectDetailPage() {
 
   const submitMember = async (event) => {
     event.preventDefault();
+    if (!memberForm.employee_id) return setError('Please select an employee.');
+    const selectedEmp = globalEmployees.find(e => String(e.id) === memberForm.employee_id);
+    if (!selectedEmp) return setError('Selected employee not found.');
+
     const { error: insertError } = await projectMembersApi.create({
       project_id: id,
-      name: memberForm.name,
-      role: memberForm.role || null,
-      email: memberForm.email || null
+      employee_id: selectedEmp.id,
+      name: selectedEmp.name,
+      role: selectedEmp.role || null,
+      email: selectedEmp.email || null
     });
     if (insertError) return setError(insertError.message);
     setMemberForm(emptyMember);
     await loadData();
+    setSheetOpen(false);
   };
 
   const submitTask = async (event) => {
@@ -118,13 +151,39 @@ export default function ProjectDetailPage() {
     <div className="space-y-6">
       <section className="page-hero">
         <div>
-          <p className="eyebrow">Project Detail</p>
+          <p className="eyebrow">Project Detail - {project.status}</p>
           <h1 className="text-xl md:text-2xl">{project.name}</h1>
           <p>{project.description || 'No project description yet.'}</p>
+          <div className="mt-2 flex gap-4 text-sm text-slate-500">
+            {project.start_date && <span>Start: {project.start_date}</span>}
+            {project.deadline && <span>Deadline: {project.deadline}</span>}
+          </div>
         </div>
         <div className="button-row">
-          <Button asChild variant="outline">
-            <Link to="/projects">Back</Link>
+          <Link to="/projects">
+            <Button variant="outline">Back</Button>
+          </Link>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setSheetMode('edit');
+              setSheetOpen(true);
+            }}
+          >
+            Edit
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setSheetMode('member');
+              setMemberForm(emptyMember);
+              setSheetOpen(true);
+            }}
+          >
+            <PlusCircle className="mr-2 size-4" />
+            Assign Employee
           </Button>
           <Button
             variant="outline"
@@ -184,8 +243,8 @@ export default function ProjectDetailPage() {
         <div className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
           <Card>
             <CardHeader>
-              <CardTitle>Team Members</CardTitle>
-              <CardDescription>Members assigned to this project.</CardDescription>
+              <CardTitle>Assigned Employees</CardTitle>
+              <CardDescription>Employees assigned to this project.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {members.length ? (
@@ -194,7 +253,7 @@ export default function ProjectDetailPage() {
                     <div>
                       <p className="font-medium text-black">{member.name}</p>
                       <p className="text-sm text-black">
-                        {member.role || 'Member'}
+                        {member.role || 'Employee'}
                         {member.email ? ` • ${member.email}` : ''}
                       </p>
                     </div>
@@ -212,15 +271,15 @@ export default function ProjectDetailPage() {
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-slate-500">No team members added yet.</p>
+                <p className="text-sm text-slate-500">No employees added yet.</p>
               )}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Add Member</CardTitle>
-              <CardDescription>Add team members to this project from the sidebar.</CardDescription>
+              <CardTitle>Add Employee</CardTitle>
+              <CardDescription>Assign an employee to this project from the sidebar.</CardDescription>
             </CardHeader>
             <CardContent>
               <Button
@@ -232,7 +291,7 @@ export default function ProjectDetailPage() {
                 }}
               >
                 <PlusCircle className="mr-2 size-4" />
-                Open Team Sidebar
+                Assign Employee
               </Button>
             </CardContent>
           </Card>
@@ -280,19 +339,19 @@ export default function ProjectDetailPage() {
                 }}
               >
                 <PlusCircle className="mr-2 size-4" />
-                Add Team Member
+                Assign Employee
               </Button>
             </div>
 
             {tasks.length ? (
-              tasks.map((task) => (
+               tasks.map((task) => (
                 <div key={task.id} className="space-y-3 rounded-xl border border-border p-4">
                   <div className="flex items-center justify-between gap-3">
-                    <Button asChild variant="outline" className="justify-start">
-                      <Link to={`/projects/${id}/tasks/${task.id}`}>
+                    <Link to={`/projects/${id}/tasks/${task.id}`}>
+                      <Button variant="outline" className="justify-start">
                         {task.title} - {task.status} - {task.priority}
-                      </Link>
-                    </Button>
+                      </Button>
+                    </Link>
                     <Button
                       type="button"
                       variant="outline"
@@ -353,11 +412,15 @@ export default function ProjectDetailPage() {
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent side="right" className="w-full sm:max-w-xl">
           <SheetHeader className="border-b border-border px-4 pb-4 pt-6">
-            <SheetTitle>{sheetMode === 'task' ? 'Create Task' : 'Create Subtask'}</SheetTitle>
+            <SheetTitle>
+              {sheetMode === 'task' ? 'Create Task' : sheetMode === 'subtask' ? 'Create Subtask' : 'Assign Employee'}
+            </SheetTitle>
             <SheetDescription>
               {sheetMode === 'task'
                 ? 'Create a new task for this project from the sidebar.'
-                : 'Create a subtask for the selected task from the sidebar.'}
+                : sheetMode === 'subtask'
+                ? 'Create a subtask for the selected task from the sidebar.'
+                : 'Select an employee from the workspace to assign to this project.'}
             </SheetDescription>
           </SheetHeader>
           <div className="flex-1 overflow-y-auto px-4 py-4">
@@ -366,12 +429,12 @@ export default function ProjectDetailPage() {
                 <Input placeholder="Task title" value={taskForm.title} onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })} />
                 <Select value={taskForm.assignee} onValueChange={(value) => setTaskForm({ ...taskForm, assignee: value })}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Assign to team member" />
+                    <SelectValue placeholder="Assign to employee" />
                   </SelectTrigger>
                   <SelectContent>
                     {memberOptions.length ? memberOptions.map((member) => (
                       <SelectItem key={member.id} value={member.label}>{member.label}</SelectItem>
-                    )) : <SelectItem value="unassigned">No team members yet</SelectItem>}
+                    )) : <SelectItem value="unassigned">No employees assigned to project</SelectItem>}
                   </SelectContent>
                 </Select>
                 <Button type="submit">
@@ -388,26 +451,63 @@ export default function ProjectDetailPage() {
                   Create Subtask
                 </Button>
               </form>
-            ) : (
+            ) : sheetMode === 'member' ? (
               <form className="grid gap-3" onSubmit={submitMember}>
-                <Select value={memberForm.name} onValueChange={(value) => setMemberForm({ ...memberForm, name: value })}>
+                <Select value={memberForm.employee_id} onValueChange={(value) => setMemberForm({ ...memberForm, employee_id: value })}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select team member" />
+                    <SelectValue placeholder="Select employee" />
                   </SelectTrigger>
                   <SelectContent>
-                    {memberOptions.length ? memberOptions.map((member) => (
-                      <SelectItem key={member.id} value={member.label}>{member.label}</SelectItem>
-                    )) : <SelectItem value="new-member">No members yet</SelectItem>}
+                    {globalEmployeeOptions.length ? globalEmployeeOptions.map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id}>{emp.label}</SelectItem>
+                    )) : <SelectItem value="no-employees">No employees in workspace</SelectItem>}
                   </SelectContent>
                 </Select>
-                <Input placeholder="Role" value={memberForm.role} onChange={(e) => setMemberForm({ ...memberForm, role: e.target.value })} />
-                <Input placeholder="Email" type="email" value={memberForm.email} onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })} />
                 <Button type="submit">
                   <PlusCircle className="mr-2 size-4" />
-                  Add Team Member
+                  Assign Employee
                 </Button>
               </form>
-            )}
+            ) : sheetMode === 'edit' ? (
+              <form className="grid gap-3" onSubmit={async (e) => {
+                e.preventDefault();
+                const payload = { ...editForm };
+                if (!payload.start_date) payload.start_date = null;
+                if (!payload.deadline) payload.deadline = null;
+                const { error: updateError } = await projectsApi.update(id, payload);
+                if (updateError) return setError(updateError.message);
+                setSheetOpen(false);
+                await loadData();
+              }}>
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Project Name</label>
+                  <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} required />
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Status</label>
+                  <Select value={editForm.status} onValueChange={(value) => setEditForm({ ...editForm, status: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Planning">Planning</SelectItem>
+                      <SelectItem value="Active">Active</SelectItem>
+                      <SelectItem value="At Risk">At Risk</SelectItem>
+                      <SelectItem value="Done">Done</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Start Date</label>
+                  <Input type="date" value={editForm.start_date || ''} onChange={(e) => setEditForm({ ...editForm, start_date: e.target.value })} />
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Deadline</label>
+                  <Input type="date" value={editForm.deadline || ''} onChange={(e) => setEditForm({ ...editForm, deadline: e.target.value })} />
+                </div>
+                <Button type="submit">Save Changes</Button>
+              </form>
+            ) : null}
           </div>
         </SheetContent>
       </Sheet>

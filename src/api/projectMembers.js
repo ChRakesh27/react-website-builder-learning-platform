@@ -6,7 +6,7 @@ export const projectMembersApi = {
     const { data: user } = await auth.currentUser();
     return supabase
       .from('project_members')
-      .select('*')
+      .select('*, employees(*)')
       .eq('owner_id', user?.id || '')
       .eq('project_id', projectId)
       .order('created_at', { ascending: false });

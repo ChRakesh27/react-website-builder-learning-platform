@@ -31,7 +31,7 @@ const navItems = [
   { to: "/", label: "Home", icon: LayoutDashboard },
   { to: "/search", label: "Search", icon: Search },
   { to: "/projects", label: "Projects", icon: FolderKanban },
-  { to: "/teams", label: "Teams", icon: Users },
+  { to: "/employees", label: "Employees", icon: Users },
 ];
 
 export default function AppLayout() {

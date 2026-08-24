@@ -10,7 +10,7 @@ const iconByEntity = {
   project: FolderKanban,
   task: ListTodo,
   subtask: SquareCheckBig,
-  team: Users
+  employee: Users
 };
 
 export default function WorkspaceSearchPage() {
@@ -57,7 +57,7 @@ export default function WorkspaceSearchPage() {
       <section className="page-hero">
         <div>
           <p className="eyebrow">Workspace Search</p>
-          <h1>Fast search across projects, tasks, teams, and subtasks</h1>
+          <h1>Fast search across projects, tasks, employees, and subtasks</h1>
           <p>Uses indexed Postgres search for better speed and relevance.</p>
         </div>
         <Button asChild>
@@ -111,7 +111,7 @@ export default function WorkspaceSearchPage() {
                   {item.entity === 'project' ? <span>Project ID: {item.id}</span> : null}
                   {item.entity === 'task' ? <span>Task ID: {item.id}</span> : null}
                   {item.entity === 'subtask' ? <span>Subtask ID: {item.id}</span> : null}
-                  {item.entity === 'team' ? <span>Team ID: {item.id}</span> : null}
+                  {item.entity === 'employee' ? <span>Employee ID: {item.id}</span> : null}
                   {typeof item.score === 'number' ? <span>Score: {item.score.toFixed(3)}</span> : null}
                 </div>
                 <div className="flex gap-2">
@@ -120,9 +120,9 @@ export default function WorkspaceSearchPage() {
                       <Link to={`/projects/${item.id}`}>Open project</Link>
                     </Button>
                   ) : null}
-                  {item.entity === 'team' ? (
+                  {item.entity === 'employee' ? (
                     <Button asChild variant="outline">
-                      <Link to="/teams">Open teams</Link>
+                      <Link to="/employees">Open employees</Link>
                     </Button>
                   ) : null}
                   {item.entity === 'task' && item.project_id ? (

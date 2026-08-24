@@ -6,8 +6,8 @@ import ProjectsListPage from './pages/pmsPage/ProjectsListPage.jsx';
 import ProjectCreatePage from './pages/pmsPage/ProjectCreatePage.jsx';
 import ProjectDetailPage from './pages/pmsPage/ProjectDetailPage.jsx';
 import TaskDetailPage from './pages/pmsPage/TaskDetailPage.jsx';
-import TeamsPage from './pages/pmsPage/TeamsPage.jsx';
-import TeamCreatePage from './pages/pmsPage/TeamCreatePage.jsx';
+import EmployeesPage from './pages/pmsPage/EmployeesPage.jsx';
+import EmployeeCreatePage from './pages/pmsPage/EmployeeCreatePage.jsx';
 import WorkspaceSearchPage from './pages/pmsPage/WorkspaceSearchPage.jsx';
 
 export default function App() {
@@ -19,8 +19,8 @@ export default function App() {
         <Route path="projects/new" element={<ProjectCreatePage />} />
         <Route path="projects/:id" element={<ProjectDetailPage />} />
         <Route path="projects/:id/tasks/:taskId" element={<TaskDetailPage />} />
-        <Route path="teams" element={<TeamsPage />} />
-        <Route path="teams/new" element={<TeamCreatePage />} />
+        <Route path="employees" element={<EmployeesPage />} />
+        <Route path="employees/new" element={<EmployeeCreatePage />} />
         <Route path="search" element={<WorkspaceSearchPage />} />
       </Route>
       <Route path="/login" element={<LoginPage />} />

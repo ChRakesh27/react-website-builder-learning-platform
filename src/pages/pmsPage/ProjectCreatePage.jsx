@@ -71,7 +71,10 @@ export default function ProjectCreatePage() {
       start_date: form.start_date || null,
       deadline: form.deadline || null,
       status: form.status,
-      owner_id: userId || null
+      owner_id: userId || null,
+      database_name: form.database_name || null,
+      database_plan: form.database_plan || null,
+      account_name: form.account_name || null
     });
     if (insertError) return setError(insertError.message);
     navigate('/projects');

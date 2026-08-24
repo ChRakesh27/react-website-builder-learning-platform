@@ -5,14 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { loadDashboard } from '../../api/dashboard.js';
 
 export default function HomePage() {
-  const [stats, setStats] = useState({ projects: 0, teams: 0, tasks: 0 });
+  const [stats, setStats] = useState({ projects: 0, employees: 0, tasks: 0 });
 
   useEffect(() => {
     (async () => {
-      const { projects, teams, tasks } = await loadDashboard();
+      const { projects, employees, tasks } = await loadDashboard();
       setStats({
         projects: projects.data?.length || 0,
-        teams: teams.data?.length || 0,
+        employees: employees.data?.length || 0,
         tasks: tasks.data?.length || 0
       });
     })();
@@ -38,7 +38,7 @@ export default function HomePage() {
 
       <section className="grid four">
         <Card><CardHeader><CardDescription>Projects</CardDescription><CardTitle>{stats.projects}</CardTitle></CardHeader><CardContent>Active project records</CardContent></Card>
-        <Card><CardHeader><CardDescription>Teams</CardDescription><CardTitle>{stats.teams}</CardTitle></CardHeader><CardContent>Team records in database</CardContent></Card>
+        <Card><CardHeader><CardDescription>Employees</CardDescription><CardTitle>{stats.employees}</CardTitle></CardHeader><CardContent>Employee records in database</CardContent></Card>
         <Card><CardHeader><CardDescription>Tasks</CardDescription><CardTitle>{stats.tasks}</CardTitle></CardHeader><CardContent>Task items being tracked</CardContent></Card>
         <Card><CardHeader><CardDescription>Velocity</CardDescription><CardTitle>78%</CardTitle></CardHeader><CardContent>Delivery pace this sprint</CardContent></Card>
       </section>

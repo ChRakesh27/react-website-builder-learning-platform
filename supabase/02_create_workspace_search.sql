@@ -1,6 +1,6 @@
 create index if not exists projects_search_document_idx on public.projects using gin (search_document);
 create index if not exists tasks_search_document_idx on public.tasks using gin (search_document);
-create index if not exists teams_search_document_idx on public.teams using gin (search_document);
+create index if not exists employees_search_document_idx on public.employees using gin (search_document);
 create index if not exists subtasks_search_document_idx on public.subtasks using gin (search_document);
 
 create index if not exists projects_name_trgm_idx on public.projects using gin (name gin_trgm_ops);
@@ -11,13 +11,12 @@ create index if not exists tasks_title_trgm_idx on public.tasks using gin (title
 create index if not exists tasks_assignee_trgm_idx on public.tasks using gin (assignee gin_trgm_ops);
 create index if not exists tasks_status_trgm_idx on public.tasks using gin (status gin_trgm_ops);
 
-create index if not exists teams_name_trgm_idx on public.teams using gin (name gin_trgm_ops);
-create index if not exists teams_lead_trgm_idx on public.teams using gin (lead gin_trgm_ops);
-create index if not exists teams_skills_trgm_idx on public.teams using gin (skills gin_trgm_ops);
+create index if not exists employees_name_trgm_idx on public.employees using gin (name gin_trgm_ops);
+create index if not exists employees_role_trgm_idx on public.employees using gin (role gin_trgm_ops);
 
 create index if not exists projects_search_query_idx on public.projects using gin (search_document);
 create index if not exists tasks_search_query_idx on public.tasks using gin (search_document);
-create index if not exists teams_search_query_idx on public.teams using gin (search_document);
+create index if not exists employees_search_query_idx on public.employees using gin (search_document);
 create index if not exists subtasks_search_query_idx on public.subtasks using gin (search_document);
 
 create or replace function public.search_workspace(search_query text, match_limit integer default 20)
@@ -104,35 +103,32 @@ as $$
         or coalesce(t.priority, '') % q.term
       )
   ),
-  teams_result as (
+  employees_result as (
     select
-      'team'::text as entity,
-      tm.id::text as id,
-      tm.name as title,
-      tm.name,
+      'employee'::text as entity,
+      emp.id::text as id,
+      emp.name as title,
+      emp.name,
       null::text as key,
-      coalesce(tm.skills, tm.lead, tm.role) as content,
+      emp.role as content,
       null::text as description,
       null::text as status,
       null::text as priority,
       null::text as project_id,
       null::text as task_id,
       greatest(
-        ts_rank_cd(tm.search_document, q.tsq),
-        similarity(coalesce(tm.name, ''), q.term),
-        similarity(coalesce(tm.skills, ''), q.term),
-        similarity(coalesce(tm.lead, ''), q.term)
+        ts_rank_cd(emp.search_document, q.tsq),
+        similarity(coalesce(emp.name, ''), q.term),
+        similarity(coalesce(emp.role, ''), q.term)
       )::real as score,
       3 as rank
-    from public.teams tm
+    from public.employees emp
     cross join q
-    where tm.owner_id = auth.uid()
+    where emp.owner_id = auth.uid()
       and (
-        tm.search_document @@ q.tsq
-        or coalesce(tm.name, '') % q.term
-        or coalesce(tm.skills, '') % q.term
-        or coalesce(tm.lead, '') % q.term
-        or coalesce(tm.role, '') % q.term
+        emp.search_document @@ q.tsq
+        or coalesce(emp.name, '') % q.term
+        or coalesce(emp.role, '') % q.term
       )
   ),
   subtasks_result as (
@@ -165,7 +161,7 @@ as $$
   union all
   select * from tasks_result
   union all
-  select * from teams_result
+  select * from employees_result
   union all
   select * from subtasks_result
   order by score desc, rank asc, id desc
