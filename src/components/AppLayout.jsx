@@ -7,6 +7,7 @@ import {
   Search,
   Users,
   LogOut,
+  MessageSquare,
 } from "lucide-react";
 import {
   Sidebar,
@@ -33,6 +34,7 @@ const navItems = [
   { to: "/search", label: "Search", icon: Search },
   { to: "/projects", label: "Projects", icon: FolderKanban },
   { to: "/employees", label: "Employees", icon: Users },
+  { to: "/ai", label: "AI Assistant", icon: MessageSquare },
 ];
 
 export default function AppLayout() {

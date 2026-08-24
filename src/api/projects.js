@@ -4,11 +4,15 @@ import { auth } from './auth.js';
 export const projectsApi = {
   list: async () => {
     const { data: user } = await auth.currentUser();
-    return supabase.from('projects').select('*, tasks(*, subtasks(*))').eq('owner_id', user?.id || '').order('created_at', { ascending: false });
+    const query = supabase.from('projects').select('*, tasks(*, subtasks(*))');
+    return user?.id
+      ? query.eq('owner_id', user.id).order('created_at', { ascending: false })
+      : query.order('created_at', { ascending: false });
   },
   get: async (id) => {
     const { data: user } = await auth.currentUser();
-    return supabase.from('projects').select('*, tasks(*, subtasks(*))').eq('id', id).eq('owner_id', user?.id || '').single();
+    const query = supabase.from('projects').select('*, tasks(*, subtasks(*))').eq('id', id);
+    return user?.id ? query.eq('owner_id', user.id).single() : query.single();
   },
   create: async (payload) => supabase.from('projects').insert(payload).select().single(),
   update: async (id, payload) => {
@@ -18,6 +22,7 @@ export const projectsApi = {
   },
   remove: async (id) => {
     const { data: user } = await auth.currentUser();
-    return supabase.from('projects').delete().eq('id', id).eq('owner_id', user?.id || '');
+    const query = supabase.from('projects').delete().eq('id', id);
+    return user?.id ? query.eq('owner_id', user.id) : query;
   }
 };

@@ -10,6 +10,7 @@ import EmployeesPage from './pages/pmsPage/EmployeesPage.jsx';
 import EmployeeCreatePage from './pages/pmsPage/EmployeeCreatePage.jsx';
 import EmployeeDetailPage from './pages/pmsPage/EmployeeDetailPage.jsx';
 import WorkspaceSearchPage from './pages/pmsPage/WorkspaceSearchPage.jsx';
+import AIPage from './pages/pmsPage/AIPage.jsx';
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="employees/new" element={<EmployeeCreatePage />} />
         <Route path="employees/:id" element={<EmployeeDetailPage />} />
         <Route path="search" element={<WorkspaceSearchPage />} />
+        <Route path="ai" element={<AIPage />} />
       </Route>
       <Route path="/login" element={<LoginPage />} />
     </Routes>
