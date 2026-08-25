@@ -4,6 +4,13 @@ create policy employees_read_all on public.employees
 for select
 using (true);
 
+-- 1b. Allow the AI Agent to read project members so it doesn't hallucinate assignments
+drop policy if exists project_members_read_all on public.project_members;
+create policy project_members_read_all on public.project_members
+for select
+using (true);
+
+
 -- 2. Update search_workspace to not return 0 rows when the AI calls it without a JWT
 create or replace function public.search_workspace(search_query text, match_limit integer default 20)
 returns table (

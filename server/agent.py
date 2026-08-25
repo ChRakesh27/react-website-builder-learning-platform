@@ -25,6 +25,8 @@ try:
         assign_user_to_project,
         update_task_status,
         search_workspace,
+        get_employee_projects,
+        get_project_members,
     )
 except ImportError:
     from database import (
@@ -50,6 +52,8 @@ except ImportError:
         assign_user_to_project,
         update_task_status,
         search_workspace,
+        get_employee_projects,
+        get_project_members,
     )
 
 model = 'openai:gpt-4o-mini'
@@ -62,10 +66,12 @@ system_prompt=(
         "You help users manage their projects, tasks, and team members. "
         "You can create, read, update, and delete projects, employees, tasks, and subtasks. "
         "You can also assign users to projects and fetch information about existing records. "
+        "To find out which projects an employee works on, use get_employee_projects. "
+        "To find out who is working on a project, use get_project_members. "
         "When the user wants to search for something across the workspace, use the search_workspace tool, which uses a vector database for fuzzy text search. "
         "When the user wants to create an employee, use the employee creation tool. "
         "When the user wants to assign an employee to a project, prefer an existing employee record "
-        "and use name or email to resolve it. Always be concise and helpful."
+        "and use name or email to resolve it. Always be concise and helpful. Never guess assignments; use the tools to check."
     )
 )
 
@@ -93,4 +99,6 @@ agent.tool_plain(delete_subtask)
 agent.tool_plain(assign_user_to_project)
 agent.tool_plain(update_task_status)
 agent.tool_plain(search_workspace)
+agent.tool_plain(get_employee_projects)
+agent.tool_plain(get_project_members)
 

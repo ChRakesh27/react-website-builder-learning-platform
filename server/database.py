@@ -54,7 +54,9 @@ def get_projects(
     if status is not None:
         query = query.eq("status", status)
     if field_name and field_value:
-        query = query.eq(field_name, field_value)
+        if field_name == "title":
+            field_name = "name"
+        query = query.ilike(field_name, f"%{field_value}%")
         
     response = query.execute()
     if getattr(response, "error", None):
@@ -277,7 +279,9 @@ def get_tasks(
     if status is not None:
         query = query.eq("status", status)
     if field_name and field_value:
-        query = query.eq(field_name, field_value)
+        if field_name == "name":
+            field_name = "title"
+        query = query.ilike(field_name, f"%{field_value}%")
     
     response = query.execute()
     return response.data or []
@@ -343,6 +347,29 @@ def assign_user_to_project(project_id: str, employee_id: str, role: str = "Membe
         "role": role
     }).execute()
     return response.data[0] if response.data else {}
+
+def get_employee_projects(employee_id: str | int) -> list:
+    """Fetch all projects assigned to an employee."""
+    resolved_employee_id = resolve_employee_id(employee_id)
+    if resolved_employee_id is None:
+        return []
+    
+    response = supabase.table("project_members").select("project_id").eq("employee_id", resolved_employee_id).execute()
+    if not response.data:
+        return []
+    
+    project_ids = [row["project_id"] for row in response.data]
+    projects_response = supabase.table("projects").select("*").in_("id", project_ids).execute()
+    return projects_response.data or []
+
+def get_project_members(project_id: str | int) -> list:
+    """Fetch all employees assigned to a project."""
+    resolved_project_id = resolve_project_id(project_id)
+    if resolved_project_id is None:
+        return []
+    
+    response = supabase.table("project_members").select("employee_id, role, name, email").eq("project_id", resolved_project_id).execute()
+    return response.data or []
 
 def update_task_status(task_id: str, status: str) -> dict:
     """Update the status of a task."""
