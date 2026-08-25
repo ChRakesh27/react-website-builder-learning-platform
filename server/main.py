@@ -7,10 +7,10 @@ import uvicorn
 
 try:
     from .agent import agent
-    from .database import create_employee, get_employees
+    from .database import create_employee, get_employee, get_employees
 except ImportError:
     from agent import agent
-    from database import create_employee, get_employees
+    from database import create_employee, get_employee, get_employees
 
 app = FastAPI()
 
@@ -32,6 +32,50 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     reply: str
 
+
+def _extract_employee_ref(message: str) -> str | None:
+    """Extract a likely employee lookup value from a chat message."""
+    text = message.strip()
+
+    patterns = [
+        r"(?:get|show|find|fetch|open|view)\s+(?:employee|employees)\s*[:=]\s*([^\n,]+)",
+        r"(?:employee|employee name|name)\s*[:=]\s*([^\n,]+)",
+        r"(?:email)\s*[:=]\s*([^\n,]+)",
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+
+    return None
+
+
+def _is_employee_count_request(message: str) -> bool:
+    """Return True when a message asks for the employee list or count."""
+    text = message.strip().lower()
+
+    count_phrases = (
+        "total employees",
+        "how many employees",
+        "number of employees",
+        "list employees",
+        "show employees",
+        "employees are there",
+        "how many employess",
+        "how many employee",
+        "employee count",
+        "employee list",
+    )
+    if any(phrase in text for phrase in count_phrases):
+        return True
+
+    # Catch small typos like "employess" or "emploees" after a count-style question.
+    if re.search(r"\b(how many|number of|count of|list|show)\b.*\bempl\w*\b", text):
+        return True
+
+    return False
+
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
     print("[chat] incoming request:", {
@@ -42,6 +86,50 @@ async def chat_endpoint(request: ChatRequest):
     })
 
     normalized_message = request.message.strip().lower()
+
+    if any(
+        phrase in normalized_message
+        for phrase in (
+            "get employee",
+            "show employee",
+            "find employee",
+            "fetch employee",
+            "view employee",
+            "employee details",
+            "employee detail",
+        )
+    ):
+        try:
+            employee_ref = _extract_employee_ref(request.message)
+            if not employee_ref and request.message.strip().isdigit():
+                employee_ref = request.message.strip()
+
+            if not employee_ref:
+                return ChatResponse(
+                    reply=(
+                        "Please provide an employee id, name, or email. "
+                        "Example: get employee 12 or get employee name: Pooja"
+                    )
+                )
+
+            employee = get_employee(
+                employee_ref,
+                owner_id=request.owner_id,
+                access_token=request.access_token,
+            )
+            if not employee:
+                return ChatResponse(reply=f"No employee found for: {employee_ref}")
+
+            reply_lines = [
+                f"Employee: {employee.get('name', 'Unknown')}",
+                f"Role: {employee.get('role') or '-'}",
+                f"Email: {employee.get('email') or '-'}",
+                f"Phone: {employee.get('phone') or '-'}",
+            ]
+            return ChatResponse(reply="\n".join(reply_lines))
+        except Exception as exc:
+            print("[chat] employee lookup failed:", repr(exc))
+            return ChatResponse(reply=f"Failed to fetch employee: {exc}")
 
     if normalized_message.startswith("create employee") or normalized_message.startswith("create the employee"):
         try:
@@ -75,19 +163,12 @@ async def chat_endpoint(request: ChatRequest):
             print("[chat] employee create failed:", repr(exc))
             return ChatResponse(reply=f"Failed to create employee: {exc}")
 
-    if any(
-        phrase in normalized_message
-        for phrase in (
-            "total employees",
-            "how many employees",
-            "number of employees",
-            "list employees",
-            "show employees",
-            "employees are there",
-        )
-    ):
+    if _is_employee_count_request(request.message):
         try:
-            employees = get_employees(request.owner_id)
+            employees = get_employees(
+                request.owner_id,
+                access_token=request.access_token,
+            )
             count = len(employees)
             print("[chat] employee count:", count)
             if count == 0:

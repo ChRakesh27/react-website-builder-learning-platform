@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from supabase import create_client, Client, ClientOptions
+import re
 
 load_dotenv()
 
@@ -12,6 +13,12 @@ supabase_key = (
 )
 uses_service_role = bool(os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_SECRET_KEY"))
 supabase: Client = create_client(supabase_url, supabase_key)
+
+
+def _is_uuid(value: str | None) -> bool:
+    if not value:
+        return False
+    return bool(re.fullmatch(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", str(value).strip()))
 
 
 def create_supabase_client(access_token: str | None = None) -> Client:
@@ -31,11 +38,24 @@ def create_supabase_client(access_token: str | None = None) -> Client:
     print("[db] creating default supabase client without access token")
     return supabase
 
-def get_projects(owner_id: str | None = None) -> list:
+def get_projects(
+    owner_id: str | None = None,
+    status: str | None = None,
+    field_name: str | None = None,
+    field_value: str | None = None
+) -> list:
     """Fetch all projects from the database."""
     query = supabase.table("projects").select("*")
-    if owner_id:
+    if _is_uuid(owner_id):
         query = query.eq("owner_id", owner_id)
+    elif owner_id:
+        print(f"[db] ignoring invalid project owner_id filter: {owner_id!r}")
+        
+    if status is not None:
+        query = query.eq("status", status)
+    if field_name and field_value:
+        query = query.eq(field_name, field_value)
+        
     response = query.execute()
     if getattr(response, "error", None):
         raise RuntimeError(f"Failed to fetch projects: {response.error}")
@@ -93,23 +113,84 @@ def create_project(title: str, description: str, owner_id: str, status: str = "P
     }).execute()
     return response.data[0] if response.data else {}
 
-def get_employees(owner_id: str | None = None) -> list:
-    """Fetch all employees from the database."""
-    query = supabase.table("employees").select("*")
-    if owner_id:
+def get_project(project_id: str | int, owner_id: str | None = None) -> dict:
+    """Fetch a single project by id."""
+    resolved_project_id = resolve_project_id(project_id)
+    if resolved_project_id is None:
+        return {}
+    query = supabase.table("projects").select("*").eq("id", resolved_project_id)
+    if _is_uuid(owner_id):
         query = query.eq("owner_id", owner_id)
+    response = query.limit(1).execute()
+    return response.data[0] if response.data else {}
+
+def update_project(
+    project_id: str | int,
+    owner_id: str,
+    title: str | None = None,
+    description: str | None = None,
+    status: str | None = None
+) -> dict:
+    """Update a project record."""
+    resolved_project_id = resolve_project_id(project_id)
+    if resolved_project_id is None:
+        raise RuntimeError(f"Project not found: {project_id}")
+    payload = {k: v for k, v in {
+        "name": title,
+        "description": description,
+        "status": status,
+    }.items() if v is not None}
+    if title:
+        payload["key"] = title.upper().replace(" ", "-")
+    response = supabase.table("projects").update(payload).eq("id", resolved_project_id).eq("owner_id", owner_id).execute()
+    return response.data[0] if response.data else {}
+
+def delete_project(project_id: str | int, owner_id: str) -> dict:
+    """Delete a project record."""
+    resolved_project_id = resolve_project_id(project_id)
+    if resolved_project_id is None:
+        raise RuntimeError(f"Project not found: {project_id}")
+    response = supabase.table("projects").delete().eq("id", resolved_project_id).eq("owner_id", owner_id).execute()
+    return response.data[0] if response.data else {}
+
+def get_employees(
+    owner_id: str | None = None, 
+    role: str | None = None,
+    field_name: str | None = None,
+    field_value: str | None = None,
+    access_token: str | None = None
+) -> list:
+    """Fetch all employees from the database."""
+    client = create_supabase_client(access_token)
+    query = client.table("employees").select("*")
+    if _is_uuid(owner_id):
+        query = query.eq("owner_id", owner_id)
+    elif owner_id:
+        print(f"[db] ignoring invalid employee owner_id filter: {owner_id!r}")
+        
+    if role is not None:
+        query = query.eq("role", role)
+    if field_name and field_value:
+        query = query.ilike(field_name, f"%{field_value}%")
+        
     response = query.execute()
     if getattr(response, "error", None):
         raise RuntimeError(f"Failed to fetch employees: {response.error}")
     print("[db] get_employees response:", response.data)
     return response.data or []
 
-def get_employee(employee_id: str | int) -> dict:
+def get_employee(employee_id: str | int, owner_id: str | None = None, access_token: str | None = None) -> dict:
     """Fetch a single employee by id."""
+    client = create_supabase_client(access_token)
     resolved_employee_id = resolve_employee_id(employee_id)
     if resolved_employee_id is None:
         return {}
-    response = supabase.table("employees").select("*").eq("id", resolved_employee_id).limit(1).execute()
+    query = client.table("employees").select("*").eq("id", resolved_employee_id)
+    if _is_uuid(owner_id):
+        query = query.eq("owner_id", owner_id)
+    elif owner_id:
+        print(f"[db] ignoring invalid employee owner_id filter: {owner_id!r}")
+    response = query.limit(1).execute()
     return response.data[0] if response.data else {}
 
 def create_employee(
@@ -181,13 +262,25 @@ def delete_employee(employee_id: str | int, owner_id: str) -> dict:
     response = supabase.table("employees").delete().eq("id", resolved_employee_id).eq("owner_id", owner_id).execute()
     return response.data[0] if response.data else {}
 
-def get_tasks(project_id: str) -> list:
-    """Fetch all tasks for a given project."""
-    resolved_project_id = resolve_project_id(project_id)
-    if resolved_project_id is None:
-        return []
-    response = supabase.table("tasks").select("*").eq("project_id", resolved_project_id).execute()
-    return response.data
+def get_tasks(
+    project_id: str | int | None = None,
+    status: str | None = None,
+    field_name: str | None = None,
+    field_value: str | None = None
+) -> list:
+    """Fetch all tasks, optionally filtered by project or other fields."""
+    query = supabase.table("tasks").select("*")
+    if project_id is not None:
+        resolved_project_id = resolve_project_id(project_id)
+        if resolved_project_id is not None:
+            query = query.eq("project_id", resolved_project_id)
+    if status is not None:
+        query = query.eq("status", status)
+    if field_name and field_value:
+        query = query.eq(field_name, field_value)
+    
+    response = query.execute()
+    return response.data or []
 
 def create_task(title: str, project_id: str, status: str = "Todo", task_type: str = "Task", priority: str = "Medium", assignee: str | None = None) -> dict:
     """Create a new task under a project."""
@@ -297,3 +390,18 @@ def delete_subtask(subtask_id: str | int, owner_id: str) -> dict:
     """Delete a subtask record."""
     response = supabase.table("subtasks").delete().eq("id", int(subtask_id)).eq("owner_id", owner_id).execute()
     return response.data[0] if response.data else {}
+
+def search_workspace(search_query: str, match_limit: int = 20, access_token: str | None = None) -> list:
+    """
+    Search the workspace using vector database (projects, tasks, employees, subtasks).
+    Uses full-text search and trigram similarity to find matching records.
+    """
+    client = create_supabase_client(access_token)
+    response = client.rpc(
+        "search_workspace",
+        {"search_query": search_query, "match_limit": match_limit}
+    ).execute()
+    if getattr(response, "error", None):
+        raise RuntimeError(f"Search failed: {response.error}")
+    return response.data or []
+
