@@ -1,14 +1,3 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, NavLink, Outlet, Navigate } from "react-router-dom";
-import {
-  FolderKanban,
-  LayoutDashboard,
-  LogIn,
-  Search,
-  Users,
-  LogOut,
-  MessageSquare,
-} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -18,15 +7,25 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarInput,
+  SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
   SidebarSeparator,
-  SidebarInset,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  FileText,
+  FolderKanban,
+  LayoutDashboard,
+  LogOut,
+  MessageSquare,
+  Search,
+  Users,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Link, Navigate, NavLink, Outlet } from "react-router-dom";
 import { auth } from "../api/auth.js";
 
 const navItems = [
@@ -34,6 +33,7 @@ const navItems = [
   { to: "/search", label: "Search", icon: Search },
   { to: "/projects", label: "Projects", icon: FolderKanban },
   { to: "/employees", label: "Employees", icon: Users },
+  { to: "/reports", label: "Reports", icon: FileText },
   { to: "/ai", label: "AI Assistant", icon: MessageSquare },
 ];
 
@@ -51,13 +51,14 @@ export default function AppLayout() {
 
     checkUser();
 
-    const { data: authListener } = auth.onAuthStateChange?.((event, session) => {
-      if (event === 'SIGNED_IN') {
-        setUser(session?.user || null);
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-      }
-    }) || {};
+    const { data: authListener } =
+      auth.onAuthStateChange?.((event, session) => {
+        if (event === "SIGNED_IN") {
+          setUser(session?.user || null);
+        } else if (event === "SIGNED_OUT") {
+          setUser(null);
+        }
+      }) || {};
 
     return () => {
       authListener?.subscription?.unsubscribe();
@@ -81,7 +82,9 @@ export default function AppLayout() {
             </div>
             <div className="leading-tight">
               <div className="font-semibold">Project Hub</div>
-              <div className="text-xs text-muted-foreground">Jira-style workspace</div>
+              <div className="text-xs text-muted-foreground">
+                Jira-style workspace
+              </div>
             </div>
           </Link>
           <SidebarInput
@@ -118,7 +121,7 @@ export default function AppLayout() {
         <SidebarFooter>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton 
+              <SidebarMenuButton
                 onClick={async () => {
                   await auth.logout();
                 }}
@@ -141,7 +144,11 @@ export default function AppLayout() {
           </div>
         </header>
         <main className="p-4 md:p-6">
-          {checkingAuth ? <p className="text-sm text-muted-foreground">Checking session...</p> : <Outlet />}
+          {checkingAuth ? (
+            <p className="text-sm text-muted-foreground">Checking session...</p>
+          ) : (
+            <Outlet />
+          )}
         </main>
       </SidebarInset>
     </SidebarProvider>

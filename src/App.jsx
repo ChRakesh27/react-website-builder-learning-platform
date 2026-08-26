@@ -1,16 +1,17 @@
-import { Route, Routes } from 'react-router-dom';
-import AppLayout from './components/AppLayout.jsx';
-import LoginPage from './pages/authPages/LoginPage';
-import HomePage from './pages/pmsPage/HomePage.jsx';
-import ProjectsListPage from './pages/pmsPage/ProjectsListPage.jsx';
-import ProjectCreatePage from './pages/pmsPage/ProjectCreatePage.jsx';
-import ProjectDetailPage from './pages/pmsPage/ProjectDetailPage.jsx';
-import TaskDetailPage from './pages/pmsPage/TaskDetailPage.jsx';
-import EmployeesPage from './pages/pmsPage/EmployeesPage.jsx';
-import EmployeeCreatePage from './pages/pmsPage/EmployeeCreatePage.jsx';
-import EmployeeDetailPage from './pages/pmsPage/EmployeeDetailPage.jsx';
-import WorkspaceSearchPage from './pages/pmsPage/WorkspaceSearchPage.jsx';
-import AIPage from './pages/pmsPage/AIPage.jsx';
+import { Route, Routes } from "react-router-dom";
+import AppLayout from "./components/AppLayout.jsx";
+import LoginPage from "./pages/authPages/LoginPage";
+import AIPage from "./pages/pmsPage/AIPage.jsx";
+import EmployeeCreatePage from "./pages/pmsPage/EmployeeCreatePage.jsx";
+import EmployeeDetailPage from "./pages/pmsPage/EmployeeDetailPage.jsx";
+import EmployeesPage from "./pages/pmsPage/EmployeesPage.jsx";
+import HomePage from "./pages/pmsPage/HomePage.jsx";
+import ProjectCreatePage from "./pages/pmsPage/ProjectCreatePage.jsx";
+import ProjectDetailPage from "./pages/pmsPage/ProjectDetailPage.jsx";
+import ProjectsListPage from "./pages/pmsPage/ProjectsListPage.jsx";
+import ReportsPage from "./pages/pmsPage/ReportsPage.jsx";
+import TaskDetailPage from "./pages/pmsPage/TaskDetailPage.jsx";
+import WorkspaceSearchPage from "./pages/pmsPage/WorkspaceSearchPage.jsx";
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="employees/:id" element={<EmployeeDetailPage />} />
         <Route path="search" element={<WorkspaceSearchPage />} />
         <Route path="ai" element={<AIPage />} />
+        <Route path="reports" element={<ReportsPage />} />
       </Route>
       <Route path="/login" element={<LoginPage />} />
     </Routes>

@@ -300,7 +300,7 @@ def get_tasks(
     response = query.execute()
     return response.data or []
 
-def create_task(title: str, project_id: str, status: str = "Todo", task_type: str = "Task", priority: str = "Medium", assignee: str | None = None) -> dict:
+def create_task(title: str, project_id: str, status: str = "Todo", task_type: str = "Task", priority: str = "Medium", assignee: str | None = None, start_date: str | None = None, deadline: str | None = None) -> dict:
     """Create a new task under a project."""
     resolved_project_id = resolve_project_id(project_id)
     if resolved_project_id is None:
@@ -317,6 +317,8 @@ def create_task(title: str, project_id: str, status: str = "Todo", task_type: st
         "type": task_type,
         "priority": priority,
         "assignee": assignee,
+        "start_date": start_date,
+        "deadline": deadline,
         "owner_id": owner
     }).execute()
     return response.data[0] if response.data else {}
@@ -337,6 +339,8 @@ def update_task(
     priority: str | None = None,
     assignee: str | None = None,
     project_id: str | int | None = None,
+    start_date: str | None = None,
+    deadline: str | None = None,
 ) -> dict:
     """Update a task record."""
     payload = {k: v for k, v in {
@@ -345,6 +349,8 @@ def update_task(
         "type": task_type,
         "priority": priority,
         "assignee": assignee,
+        "start_date": start_date,
+        "deadline": deadline,
     }.items() if v is not None}
     if project_id is not None:
         resolved_project_id = resolve_project_id(project_id)
