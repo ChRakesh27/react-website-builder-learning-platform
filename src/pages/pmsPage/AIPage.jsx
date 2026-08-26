@@ -10,6 +10,7 @@ export default function AIPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -18,6 +19,10 @@ export default function AIPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -94,13 +99,14 @@ export default function AIPage() {
 
       {/* Input */}
       <div className="p-4 border-t bg-background">
-        <form onSubmit={handleSubmit} className="flex gap-2 relative">
-          <input
-            type="text"
+        <form onSubmit={handleSubmit} className="flex gap-2 relative items-end">
+          <textarea
+            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask about your projects, tasks, or request an action..."
-            className="flex-1 p-3 px-4 rounded-full border bg-muted/30 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+            rows={3}
+            className="flex-1 p-3 px-4 rounded-2xl border bg-muted/30 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none"
             disabled={isLoading}
           />
           <button

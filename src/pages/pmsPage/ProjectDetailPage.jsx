@@ -32,6 +32,7 @@ export default function ProjectDetailPage() {
   const [subtaskForm, setSubtaskForm] = useState(emptySubtask);
   const [memberForm, setMemberForm] = useState(emptyMember);
   const [openSubtaskFor, setOpenSubtaskFor] = useState('');
+  const [editingTaskId, setEditingTaskId] = useState(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState('task');
   const [tasksViewMode, setTasksViewMode] = useState('table');
@@ -129,9 +130,30 @@ export default function ProjectDetailPage() {
 
   const submitTask = async (event) => {
     event.preventDefault();
-    const { error: insertError } = await tasksApi.create({ ...taskForm, project_id: id });
-    if (insertError) return setError(insertError.message);
+    if (editingTaskId) {
+      const payload = {
+        title: taskForm.title,
+        status: taskForm.status,
+        assignee: taskForm.assignee,
+        priority: taskForm.priority,
+        type: taskForm.type,
+      };
+      const { error: updateError } = await tasksApi.update(editingTaskId, payload);
+      if (updateError) return setError(updateError.message);
+    } else {
+      const payload = {
+        title: taskForm.title,
+        status: taskForm.status,
+        assignee: taskForm.assignee,
+        priority: taskForm.priority,
+        type: taskForm.type,
+        project_id: id
+      };
+      const { error: insertError } = await tasksApi.create(payload);
+      if (insertError) return setError(insertError.message);
+    }
     setTaskForm(emptyTask);
+    setEditingTaskId(null);
     setSheetOpen(false);
     await loadData();
   };
@@ -139,8 +161,8 @@ export default function ProjectDetailPage() {
   const submitSubtask = async (event) => {
     event.preventDefault();
     const { error: insertError } = await subtasksApi.create({
-      ...subtaskForm,
-      task_id: subtaskForm.task_id || openSubtaskFor
+      title: subtaskForm.title,
+      task_id: openSubtaskFor
     });
     if (insertError) return setError(insertError.message);
     setSubtaskForm(emptySubtask);
@@ -336,6 +358,7 @@ export default function ProjectDetailPage() {
                 type="button"
                 onClick={() => {
                   setSheetMode('task');
+                  setEditingTaskId(null);
                   setTaskForm({ ...emptyTask, project_id: id });
                   setSheetOpen(true);
                 }}
@@ -380,20 +403,35 @@ export default function ProjectDetailPage() {
                             {task.title} - {task.status} - {task.priority}
                           </Button>
                         </Link>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSheetMode('subtask');
-                            setOpenSubtaskFor(task.id);
-                            setSubtaskForm({ title: '', task_id: task.id });
-                            setSheetOpen(true);
-                          }}
-                        >
-                          <Plus className="mr-2 size-4" />
-                          Add Subtask
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSheetMode('task');
+                              setEditingTaskId(task.id);
+                              setTaskForm({ ...task });
+                              setSheetOpen(true);
+                            }}
+                          >
+                            Edit Task
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSheetMode('subtask');
+                              setOpenSubtaskFor(task.id);
+                              setSubtaskForm({ title: '', task_id: task.id });
+                              setSheetOpen(true);
+                            }}
+                          >
+                            <Plus className="mr-2 size-4" />
+                            Add Subtask
+                          </Button>
+                        </div>
                       </div>
                       <div className="space-y-2">
                         {(task.subtasks || []).map((subtask) => (
@@ -431,20 +469,35 @@ export default function ProjectDetailPage() {
                           <TableCell>{task.assignee || 'Unassigned'}</TableCell>
                           <TableCell>{task.subtasks?.length || 0}</TableCell>
                           <TableCell>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setSheetMode('subtask');
-                                setOpenSubtaskFor(task.id);
-                                setSubtaskForm({ title: '', task_id: task.id });
-                                setSheetOpen(true);
-                              }}
-                            >
-                              <Plus className="mr-2 size-4" />
-                              Add Subtask
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSheetMode('task');
+                                  setEditingTaskId(task.id);
+                                  setTaskForm({ ...task });
+                                  setSheetOpen(true);
+                                }}
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSheetMode('subtask');
+                                  setOpenSubtaskFor(task.id);
+                                  setSubtaskForm({ title: '', task_id: task.id });
+                                  setSheetOpen(true);
+                                }}
+                              >
+                                <Plus className="mr-2 size-4" />
+                                Add Subtask
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -490,7 +543,7 @@ export default function ProjectDetailPage() {
         <SheetContent side="right" className="w-full sm:max-w-xl">
           <SheetHeader className="border-b border-border px-4 pb-4 pt-6">
             <SheetTitle>
-              {sheetMode === 'task' ? 'Create Task' : sheetMode === 'subtask' ? 'Create Subtask' : 'Assign Employee'}
+              {sheetMode === 'task' ? (editingTaskId ? 'Edit Task' : 'Create Task') : sheetMode === 'subtask' ? 'Create Subtask' : 'Assign Employee'}
             </SheetTitle>
             <SheetDescription>
               {sheetMode === 'task'
@@ -504,6 +557,16 @@ export default function ProjectDetailPage() {
             {sheetMode === 'task' ? (
               <form className="grid gap-3" onSubmit={submitTask}>
                 <Input placeholder="Task title" value={taskForm.title} onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })} />
+                <Select value={taskForm.status} onValueChange={(value) => setTaskForm({ ...taskForm, status: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="To Do">To Do</SelectItem>
+                    <SelectItem value="Ongoing">Ongoing</SelectItem>
+                    <SelectItem value="Completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Select value={taskForm.assignee} onValueChange={(value) => setTaskForm({ ...taskForm, assignee: value })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Assign to employee" />
@@ -516,13 +579,12 @@ export default function ProjectDetailPage() {
                 </Select>
                 <Button type="submit">
                   <PlusCircle className="mr-2 size-4" />
-                  Create Task
+                  {editingTaskId ? 'Update Task' : 'Create Task'}
                 </Button>
               </form>
             ) : sheetMode === 'subtask' ? (
               <form className="grid gap-3" onSubmit={submitSubtask}>
                 <Input placeholder="Subtask title" value={subtaskForm.title} onChange={(e) => setSubtaskForm({ ...subtaskForm, title: e.target.value })} />
-                <Input placeholder="Task ID" value={subtaskForm.task_id} onChange={(e) => setSubtaskForm({ ...subtaskForm, task_id: e.target.value })} />
                 <Button type="submit">
                   <PlusCircle className="mr-2 size-4" />
                   Create Subtask

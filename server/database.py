@@ -2,6 +2,10 @@ import os
 from dotenv import load_dotenv
 from supabase import create_client, Client, ClientOptions
 import re
+from contextvars import ContextVar
+
+ctx_owner_id: ContextVar[str | None] = ContextVar("ctx_owner_id", default=None)
+ctx_access_token: ContextVar[str | None] = ContextVar("ctx_access_token", default=None)
 
 load_dotenv()
 
@@ -23,14 +27,20 @@ def _is_uuid(value: str | None) -> bool:
 
 def create_supabase_client(access_token: str | None = None) -> Client:
     """Create a Supabase client scoped to the current user's JWT when provided."""
-    if access_token:
+    token = access_token or ctx_access_token.get()
+    
+    # Filter out invalid tokens (like "None", "null", or missing dots) to avoid PostgREST PGRST301
+    if token and (token in ("None", "null", "undefined") or len(str(token).split(".")) != 3):
+        token = None
+
+    if token:
         print("[db] creating user-scoped supabase client with access token")
         return create_client(
             supabase_url,
             supabase_key,
             options=ClientOptions(
                 headers={
-                    "Authorization": f"Bearer {access_token}",
+                    "Authorization": f"Bearer {token}",
                 }
             ),
         )
@@ -45,7 +55,7 @@ def get_projects(
     field_value: str | None = None
 ) -> list:
     """Fetch all projects from the database."""
-    query = supabase.table("projects").select("*")
+    query = create_supabase_client().table("projects").select("*")
     if _is_uuid(owner_id):
         query = query.eq("owner_id", owner_id)
     elif owner_id:
@@ -74,7 +84,7 @@ def resolve_employee_id(employee_ref: str | int) -> int | None:
         return int(text)
 
     response = (
-        supabase.table("employees")
+        create_supabase_client().table("employees")
         .select("id")
         .or_(f"email.eq.{text},name.eq.{text}")
         .limit(1)
@@ -94,7 +104,7 @@ def resolve_project_id(project_id: str | int) -> int | None:
         return int(text)
 
     response = (
-        supabase.table("projects")
+        create_supabase_client().table("projects")
         .select("id")
         .or_(f"name.eq.{text},key.eq.{text}")
         .limit(1)
@@ -104,13 +114,14 @@ def resolve_project_id(project_id: str | int) -> int | None:
         return response.data[0]["id"]
     return None
 
-def create_project(title: str, description: str, owner_id: str, status: str = "Planning") -> dict:
+def create_project(title: str, description: str, owner_id: str | None = None, status: str = "Planning") -> dict:
     """Create a new project."""
-    response = supabase.table("projects").insert({
+    owner = owner_id or ctx_owner_id.get()
+    response = create_supabase_client().table("projects").insert({
         "name": title,
         "description": description,
         "key": title.upper().replace(" ", "-"),
-        "owner_id": owner_id,
+        "owner_id": owner,
         "status": status
     }).execute()
     return response.data[0] if response.data else {}
@@ -120,7 +131,7 @@ def get_project(project_id: str | int, owner_id: str | None = None) -> dict:
     resolved_project_id = resolve_project_id(project_id)
     if resolved_project_id is None:
         return {}
-    query = supabase.table("projects").select("*").eq("id", resolved_project_id)
+    query = create_supabase_client().table("projects").select("*").eq("id", resolved_project_id)
     if _is_uuid(owner_id):
         query = query.eq("owner_id", owner_id)
     response = query.limit(1).execute()
@@ -144,7 +155,7 @@ def update_project(
     }.items() if v is not None}
     if title:
         payload["key"] = title.upper().replace(" ", "-")
-    response = supabase.table("projects").update(payload).eq("id", resolved_project_id).eq("owner_id", owner_id).execute()
+    response = create_supabase_client().table("projects").update(payload).eq("id", resolved_project_id).eq("owner_id", owner_id).execute()
     return response.data[0] if response.data else {}
 
 def delete_project(project_id: str | int, owner_id: str) -> dict:
@@ -152,7 +163,7 @@ def delete_project(project_id: str | int, owner_id: str) -> dict:
     resolved_project_id = resolve_project_id(project_id)
     if resolved_project_id is None:
         raise RuntimeError(f"Project not found: {project_id}")
-    response = supabase.table("projects").delete().eq("id", resolved_project_id).eq("owner_id", owner_id).execute()
+    response = create_supabase_client().table("projects").delete().eq("id", resolved_project_id).eq("owner_id", owner_id).execute()
     return response.data[0] if response.data else {}
 
 def get_employees(
@@ -197,7 +208,7 @@ def get_employee(employee_id: str | int, owner_id: str | None = None, access_tok
 
 def create_employee(
     name: str,
-    owner_id: str,
+    owner_id: str | None = None,
     role: str | None = None,
     email: str | None = None,
     phone: str | None = None,
@@ -205,19 +216,22 @@ def create_employee(
     access_token: str | None = None,
 ) -> dict:
     """Create a new employee record."""
+    owner = owner_id or ctx_owner_id.get()
+    token = access_token or ctx_access_token.get()
+    
     print("[db] create_employee called:", {
         "name": name,
-        "owner_id": owner_id,
+        "owner_id": owner,
         "role": role,
         "email": email,
         "phone": phone,
         "avatar_url": avatar_url,
-        "has_access_token": bool(access_token),
+        "has_access_token": bool(token),
         "uses_service_role": uses_service_role,
     })
-    if not owner_id:
+    if not owner:
         raise RuntimeError("owner_id is required to create an employee")
-    client = create_supabase_client(access_token)
+    client = create_supabase_client(token)
     try:
         response = client.table("employees").insert({
             "name": name,
@@ -225,7 +239,7 @@ def create_employee(
             "email": email,
             "phone": phone,
             "avatar_url": avatar_url,
-            "owner_id": owner_id,
+            "owner_id": owner,
         }).execute()
         print("[db] create_employee response:", response.data)
     except Exception as exc:
@@ -253,7 +267,7 @@ def update_employee(
         "phone": phone,
         "avatar_url": avatar_url,
     }.items() if v is not None}
-    response = supabase.table("employees").update(payload).eq("id", resolved_employee_id).eq("owner_id", owner_id).execute()
+    response = create_supabase_client().table("employees").update(payload).eq("id", resolved_employee_id).eq("owner_id", owner_id).execute()
     return response.data[0] if response.data else {}
 
 def delete_employee(employee_id: str | int, owner_id: str) -> dict:
@@ -261,7 +275,7 @@ def delete_employee(employee_id: str | int, owner_id: str) -> dict:
     resolved_employee_id = resolve_employee_id(employee_id)
     if resolved_employee_id is None:
         raise RuntimeError(f"Employee not found: {employee_id}")
-    response = supabase.table("employees").delete().eq("id", resolved_employee_id).eq("owner_id", owner_id).execute()
+    response = create_supabase_client().table("employees").delete().eq("id", resolved_employee_id).eq("owner_id", owner_id).execute()
     return response.data[0] if response.data else {}
 
 def get_tasks(
@@ -271,7 +285,7 @@ def get_tasks(
     field_value: str | None = None
 ) -> list:
     """Fetch all tasks, optionally filtered by project or other fields."""
-    query = supabase.table("tasks").select("*")
+    query = create_supabase_client().table("tasks").select("*")
     if project_id is not None:
         resolved_project_id = resolve_project_id(project_id)
         if resolved_project_id is not None:
@@ -288,20 +302,29 @@ def get_tasks(
 
 def create_task(title: str, project_id: str, status: str = "Todo", task_type: str = "Task", priority: str = "Medium", assignee: str | None = None) -> dict:
     """Create a new task under a project."""
-    response = supabase.table("tasks").insert({
+    resolved_project_id = resolve_project_id(project_id)
+    if resolved_project_id is None:
+        raise RuntimeError(f"Project not found: {project_id}")
+        
+    owner = ctx_owner_id.get()
+    if not owner:
+        raise RuntimeError("owner_id context is missing")
+        
+    response = create_supabase_client().table("tasks").insert({
         "title": title,
-        "project_id": project_id,
+        "project_id": resolved_project_id,
         "status": status,
         "type": task_type,
         "priority": priority,
-        "assignee": assignee
+        "assignee": assignee,
+        "owner_id": owner
     }).execute()
     return response.data[0] if response.data else {}
 
 def get_task(task_id: str | int) -> dict:
     """Fetch a single task by id."""
     if isinstance(task_id, int) or str(task_id).isdigit():
-        response = supabase.table("tasks").select("*").eq("id", int(task_id)).limit(1).execute()
+        response = create_supabase_client().table("tasks").select("*").eq("id", int(task_id)).limit(1).execute()
         return response.data[0] if response.data else {}
     return {}
 
@@ -328,12 +351,12 @@ def update_task(
         if resolved_project_id is None:
             raise RuntimeError(f"Project not found: {project_id}")
         payload["project_id"] = resolved_project_id
-    response = supabase.table("tasks").update(payload).eq("id", int(task_id)).eq("owner_id", owner_id).execute()
+    response = create_supabase_client().table("tasks").update(payload).eq("id", int(task_id)).eq("owner_id", owner_id).execute()
     return response.data[0] if response.data else {}
 
 def delete_task(task_id: str | int, owner_id: str) -> dict:
     """Delete a task record."""
-    response = supabase.table("tasks").delete().eq("id", int(task_id)).eq("owner_id", owner_id).execute()
+    response = create_supabase_client().table("tasks").delete().eq("id", int(task_id)).eq("owner_id", owner_id).execute()
     return response.data[0] if response.data else {}
 
 def assign_user_to_project(project_id: str, employee_id: str, role: str = "Member") -> dict:
@@ -341,10 +364,27 @@ def assign_user_to_project(project_id: str, employee_id: str, role: str = "Membe
     resolved_employee_id = resolve_employee_id(employee_id)
     if resolved_employee_id is None:
         raise RuntimeError(f"Employee not found: {employee_id}")
-    response = supabase.table("project_members").insert({
-        "project_id": project_id,
+    
+    resolved_project_id = resolve_project_id(project_id)
+    if resolved_project_id is None:
+        raise RuntimeError(f"Project not found: {project_id}")
+    
+    # We need the employee's name/email to satisfy project_members constraints
+    employee = get_employee(resolved_employee_id)
+    if not employee:
+        raise RuntimeError(f"Failed to fetch employee details for ID: {resolved_employee_id}")
+
+    owner = ctx_owner_id.get()
+    if not owner:
+        raise RuntimeError("owner_id context is missing")
+
+    response = create_supabase_client().table("project_members").insert({
+        "project_id": resolved_project_id,
         "employee_id": resolved_employee_id,
-        "role": role
+        "role": role,
+        "name": employee.get("name", "Unknown"),
+        "email": employee.get("email"),
+        "owner_id": owner
     }).execute()
     return response.data[0] if response.data else {}
 
@@ -354,12 +394,12 @@ def get_employee_projects(employee_id: str | int) -> list:
     if resolved_employee_id is None:
         return []
     
-    response = supabase.table("project_members").select("project_id").eq("employee_id", resolved_employee_id).execute()
+    response = create_supabase_client().table("project_members").select("project_id").eq("employee_id", resolved_employee_id).execute()
     if not response.data:
         return []
     
     project_ids = [row["project_id"] for row in response.data]
-    projects_response = supabase.table("projects").select("*").in_("id", project_ids).execute()
+    projects_response = create_supabase_client().table("projects").select("*").in_("id", project_ids).execute()
     return projects_response.data or []
 
 def get_project_members(project_id: str | int) -> list:
@@ -368,17 +408,17 @@ def get_project_members(project_id: str | int) -> list:
     if resolved_project_id is None:
         return []
     
-    response = supabase.table("project_members").select("employee_id, role, name, email").eq("project_id", resolved_project_id).execute()
+    response = create_supabase_client().table("project_members").select("employee_id, role, name, email").eq("project_id", resolved_project_id).execute()
     return response.data or []
 
 def update_task_status(task_id: str, status: str) -> dict:
     """Update the status of a task."""
-    response = supabase.table("tasks").update({"status": status}).eq("id", task_id).execute()
+    response = create_supabase_client().table("tasks").update({"status": status}).eq("id", task_id).execute()
     return response.data[0] if response.data else {}
 
 def get_subtasks(task_id: str | int | None = None) -> list:
     """Fetch subtasks, optionally filtered by task."""
-    query = supabase.table("subtasks").select("*")
+    query = create_supabase_client().table("subtasks").select("*")
     if task_id is not None:
         query = query.eq("task_id", int(task_id))
     response = query.execute()
@@ -386,11 +426,16 @@ def get_subtasks(task_id: str | int | None = None) -> list:
 
 def create_subtask(title: str, task_id: str, status: str | None = None, priority: str | None = None) -> dict:
     """Create a subtask under a task."""
-    response = supabase.table("subtasks").insert({
+    owner = ctx_owner_id.get()
+    if not owner:
+        raise RuntimeError("owner_id context is missing")
+        
+    response = create_supabase_client().table("subtasks").insert({
         "title": title,
         "task_id": int(task_id),
         "status": status,
         "priority": priority,
+        "owner_id": owner
     }).execute()
     return response.data[0] if response.data else {}
 
@@ -410,12 +455,12 @@ def update_subtask(
     }.items() if v is not None}
     if task_id is not None:
         payload["task_id"] = int(task_id)
-    response = supabase.table("subtasks").update(payload).eq("id", int(subtask_id)).eq("owner_id", owner_id).execute()
+    response = create_supabase_client().table("subtasks").update(payload).eq("id", int(subtask_id)).eq("owner_id", owner_id).execute()
     return response.data[0] if response.data else {}
 
 def delete_subtask(subtask_id: str | int, owner_id: str) -> dict:
     """Delete a subtask record."""
-    response = supabase.table("subtasks").delete().eq("id", int(subtask_id)).eq("owner_id", owner_id).execute()
+    response = create_supabase_client().table("subtasks").delete().eq("id", int(subtask_id)).eq("owner_id", owner_id).execute()
     return response.data[0] if response.data else {}
 
 def search_workspace(search_query: str, match_limit: int = 20, access_token: str | None = None) -> list:

@@ -3,14 +3,29 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import os
 import re
+import json
+import base64
 import uvicorn
+
+def get_owner_id_from_token(token: str) -> str | None:
+    if not token:
+        return None
+    try:
+        # Verify the token against Supabase auth and extract the user's ID
+        response = supabase.auth.get_user(token)
+        if response and response.user:
+            return response.user.id
+        return None
+    except Exception as e:
+        print(f"[auth] failed to decode token: {e}")
+        return None
 
 try:
     from .agent import agent
-    from .database import create_employee, get_employee, get_employees
+    from .database import create_employee, get_employee, get_employees, ctx_owner_id, ctx_access_token, supabase
 except ImportError:
     from agent import agent
-    from database import create_employee, get_employee, get_employees
+    from database import create_employee, get_employee, get_employees, ctx_owner_id, ctx_access_token, supabase
 
 app = FastAPI()
 
@@ -78,6 +93,11 @@ def _is_employee_count_request(message: str) -> bool:
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
+    if request.access_token:
+        extracted_owner_id = get_owner_id_from_token(request.access_token)
+        if extracted_owner_id:
+            request.owner_id = extracted_owner_id
+
     print("[chat] incoming request:", {
         "message": request.message,
         "owner_id": request.owner_id,
@@ -200,11 +220,28 @@ async def chat_endpoint(request: ChatRequest):
             + f"\n\nCurrent user message: {request.message}"
         )
 
+    system_notes = []
+    if request.owner_id:
+        system_notes.append(f"The current user's owner_id is '{request.owner_id}'. You MUST pass this exactly as owner_id to any tool that requires it.")
+    if request.access_token:
+        system_notes.append(f"The current user's access_token is '{request.access_token}'. You MUST pass this exactly as access_token to any tool that requires it.")
+    if system_notes:
+        prompt += "\n\n[System Note: " + " ".join(system_notes) + "]"
+
     try:
+        # Set context variables for the agent's database calls
+        token_a = ctx_owner_id.set(request.owner_id)
+        token_b = ctx_access_token.set(request.access_token)
+        
         print("[chat] agent prompt:", prompt)
         result = await agent.run(prompt)
         reply = getattr(result, "output", None)
         print("[chat] agent result:", result)
+        
+        # Reset context variables
+        ctx_owner_id.reset(token_a)
+        ctx_access_token.reset(token_b)
+        
         if reply is None:
             raise RuntimeError("AI agent returned no output")
         return ChatResponse(reply=str(reply))
