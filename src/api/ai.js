@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabaseClient.js';
 import { auth } from './auth';
 
-const API_URL = import.meta.env.VITE_AI_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_AI_API_URL || '/api';
 
 export const aiApi = {
   chat: async (message, history = [], ownerId = null) => {

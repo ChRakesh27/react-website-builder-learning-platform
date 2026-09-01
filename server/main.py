@@ -1,10 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 import os
 import re
 import json
 import base64
+from pathlib import Path
 import uvicorn
 
 def get_owner_id_from_token(token: str) -> str | None:
@@ -37,6 +39,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+DIST_DIR = Path(__file__).resolve().parent.parent / "dist"
+INDEX_FILE = DIST_DIR / "index.html"
 
 class ChatRequest(BaseModel):
     message: str
@@ -252,6 +257,23 @@ async def chat_endpoint(request: ChatRequest):
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+
+@app.get("/{path:path}")
+def serve_frontend(path: str):
+    """Serve Vite output and fall back to index.html for React routes."""
+    if not INDEX_FILE.is_file():
+        return {"error": "Frontend build not found"}
+
+    requested_file = (DIST_DIR / path).resolve()
+    try:
+        requested_file.relative_to(DIST_DIR)
+    except ValueError:
+        return FileResponse(INDEX_FILE)
+
+    if requested_file.is_file():
+        return FileResponse(requested_file)
+    return FileResponse(INDEX_FILE)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

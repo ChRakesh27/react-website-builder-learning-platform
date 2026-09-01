@@ -1,5 +1,10 @@
 import os
+from dotenv import load_dotenv
 from pydantic_ai import Agent
+from pydantic_ai.models.openai import OpenAIChatModel
+from pydantic_ai.providers.openai import OpenAIProvider
+
+load_dotenv()
 
 try:
     from .database import (
@@ -56,12 +61,29 @@ except ImportError:
         get_project_members,
     )
 
-model = 'openai:gpt-4o-mini'
+openrouter_api_key = os.environ.get("OPENROUTER_API_KEY")
+if not openrouter_api_key:
+    raise RuntimeError(
+        "OPENROUTER_API_KEY is not configured. "
+        "Set it in server/.env or your deployment environment."
+    )
+
+model_name = os.environ.get(
+    "OPENROUTER_MODEL",
+    "inclusionai/ling-3.0-flash-fin:free",
+)
+model = OpenAIChatModel(
+    model_name,
+    provider=OpenAIProvider(
+        api_key=openrouter_api_key,
+        base_url="https://openrouter.ai/api/v1",
+    ),
+)
 
 # Create the agent
 agent = Agent(
     model,
-system_prompt=(
+    system_prompt=(
         "You are an AI assistant integrated into a project management application. "
         "You help users manage their projects, tasks, and team members. "
         "You can create, read, update, and delete projects, employees, tasks, and subtasks. "
@@ -101,4 +123,3 @@ agent.tool_plain(update_task_status)
 agent.tool_plain(search_workspace)
 agent.tool_plain(get_employee_projects)
 agent.tool_plain(get_project_members)
-
