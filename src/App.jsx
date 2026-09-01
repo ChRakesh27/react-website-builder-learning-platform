@@ -4,6 +4,7 @@ import LoginPage from "./pages/authPages/LoginPage";
 import AIPage from "./pages/pmsPage/AIPage.jsx";
 import EmployeeCreatePage from "./pages/pmsPage/EmployeeCreatePage.jsx";
 import EmployeeDetailPage from "./pages/pmsPage/EmployeeDetailPage.jsx";
+import EmployeeEditPage from "./pages/pmsPage/EmployeeEditPage.jsx";
 import EmployeesPage from "./pages/pmsPage/EmployeesPage.jsx";
 import HomePage from "./pages/pmsPage/HomePage.jsx";
 import ProjectCreatePage from "./pages/pmsPage/ProjectCreatePage.jsx";
@@ -25,6 +26,7 @@ export default function App() {
         <Route path="employees" element={<EmployeesPage />} />
         <Route path="employees/new" element={<EmployeeCreatePage />} />
         <Route path="employees/:id" element={<EmployeeDetailPage />} />
+        <Route path="employees/:id/edit" element={<EmployeeEditPage />} />
         <Route path="search" element={<WorkspaceSearchPage />} />
         <Route path="ai" element={<AIPage />} />
         <Route path="reports" element={<ReportsPage />} />

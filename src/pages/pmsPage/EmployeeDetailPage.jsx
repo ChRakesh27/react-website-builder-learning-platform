@@ -88,10 +88,13 @@ export default function EmployeeDetailPage() {
             <p>{employee.role || 'No specific role assigned.'}</p>
           </div>
         </div>
-        <div className="button-row">
+        <div className="flex gap-2 button-row">
           <Button variant="outline" onClick={() => navigate('/employees')}>
             <ArrowLeft className="mr-2 size-4" />
             Back to Directory
+          </Button>
+          <Button onClick={() => navigate(`/employees/${id}/edit`)}>
+            Edit Employee
           </Button>
         </div>
       </section>
