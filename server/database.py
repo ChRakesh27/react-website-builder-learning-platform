@@ -3,9 +3,12 @@ from dotenv import load_dotenv
 from supabase import create_client, Client, ClientOptions
 import re
 from contextvars import ContextVar
+from typing import Literal
 
 ctx_owner_id: ContextVar[str | None] = ContextVar("ctx_owner_id", default=None)
 ctx_access_token: ContextVar[str | None] = ContextVar("ctx_access_token", default=None)
+
+TaskStatus = Literal["on-hold", "to-do", "on-going", "review", "deploy", "completed"]
 
 load_dotenv()
 
@@ -300,7 +303,7 @@ def get_tasks(
     response = query.execute()
     return response.data or []
 
-def create_task(title: str, project_id: str, status: str = "Todo", task_type: str = "Task", priority: str = "Medium", assignee: str | None = None, start_date: str | None = None, deadline: str | None = None) -> dict:
+def create_task(title: str, project_id: str, status: TaskStatus = "to-do", task_type: str = "Task", priority: str = "Medium", assignee: str | None = None, start_date: str | None = None, deadline: str | None = None) -> dict:
     """Create a new task under a project."""
     resolved_project_id = resolve_project_id(project_id)
     if resolved_project_id is None:
@@ -334,7 +337,7 @@ def update_task(
     task_id: str | int,
     owner_id: str,
     title: str | None = None,
-    status: str | None = None,
+    status: TaskStatus | None = None,
     task_type: str | None = None,
     priority: str | None = None,
     assignee: str | None = None,
@@ -417,7 +420,7 @@ def get_project_members(project_id: str | int) -> list:
     response = create_supabase_client().table("project_members").select("employee_id, role, name, email").eq("project_id", resolved_project_id).execute()
     return response.data or []
 
-def update_task_status(task_id: str, status: str) -> dict:
+def update_task_status(task_id: str, status: TaskStatus) -> dict:
     """Update the status of a task."""
     response = create_supabase_client().table("tasks").update({"status": status}).eq("id", task_id).execute()
     return response.data[0] if response.data else {}
