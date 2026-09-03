@@ -30,7 +30,6 @@ import { auth } from "../api/auth.js";
 
 const navItems = [
   { to: "/", label: "Home", icon: LayoutDashboard },
-  { to: "/search", label: "Search", icon: Search },
   { to: "/projects", label: "Projects", icon: FolderKanban },
   { to: "/employees", label: "Employees", icon: Users },
   { to: "/reports", label: "Reports", icon: FileText },

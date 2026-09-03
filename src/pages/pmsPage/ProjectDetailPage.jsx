@@ -1,5 +1,7 @@
 import {
   Database,
+  ChevronDown,
+  ChevronUp,
   FileText,
   LayoutGrid,
   List,
@@ -11,7 +13,7 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { employeesApi } from "../../api/employees.js";
 import { projectMembersApi } from "../../api/projectMembers.js";
@@ -55,7 +57,7 @@ const emptyTask = {
   title: "",
   type: "Task",
   priority: "Medium",
-  status: "To Do",
+  status: "to-do",
   assignee: "",
   project_id: "",
   start_date: "",
@@ -63,6 +65,14 @@ const emptyTask = {
 };
 const emptySubtask = { title: "", task_id: "" };
 const emptyMember = { employee_id: "" };
+const taskStatusOptions = [
+  "on-hold",
+  "to-do",
+  "on-going",
+  "review",
+  "deploy",
+  "completed",
+];
 
 export default function ProjectDetailPage() {
   const { id } = useParams();
@@ -78,6 +88,7 @@ export default function ProjectDetailPage() {
   const [subtaskForm, setSubtaskForm] = useState(emptySubtask);
   const [memberForm, setMemberForm] = useState(emptyMember);
   const [openSubtaskFor, setOpenSubtaskFor] = useState("");
+  const [expandedTaskId, setExpandedTaskId] = useState("");
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState("task");
@@ -236,6 +247,28 @@ export default function ProjectDetailPage() {
     setOpenSubtaskFor("");
     setSheetOpen(false);
     await loadData();
+  };
+
+  const normalizeTaskStatus = (status) => {
+    const normalized = String(status || "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "-");
+    const aliases = {
+      todo: "to-do",
+      "to-do": "to-do",
+      ongoing: "on-going",
+      "on-going": "on-going",
+      onhold: "on-hold",
+      "on-hold": "on-hold",
+    };
+    return aliases[normalized] || normalized || "to-do";
+  };
+
+  const updateTaskStatus = async (task, status) => {
+    const { error: updateError } = await tasksApi.update(task.id, { status });
+    if (updateError) setError(updateError.message);
+    else await loadData();
   };
 
   return (
@@ -446,30 +479,7 @@ export default function ProjectDetailPage() {
                 <PlusCircle className="mr-2 size-4" />
                 Create Task
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setSheetMode("subtask");
-                  setSubtaskForm(emptySubtask);
-                  setSheetOpen(true);
-                }}
-              >
-                <PlusCircle className="mr-2 size-4" />
-                Create Subtask
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setSheetMode("member");
-                  setMemberForm(emptyMember);
-                  setSheetOpen(true);
-                }}
-              >
-                <PlusCircle className="mr-2 size-4" />
-                Assign Employee
-              </Button>
+             
             </div>
 
             {tasks.length ? (
@@ -546,84 +556,169 @@ export default function ProjectDetailPage() {
                     </TableHeader>
                     <TableBody>
                       {tasks.map((task) => (
-                        <TableRow key={task.id}>
-                          <TableCell className="font-medium">
-                            <Link
-                              to={`/projects/${id}/tasks/${task.id}`}
-                              className="hover:underline"
+                        <Fragment key={task.id}>
+                          <TableRow
+                            className="cursor-pointer"
+                            onClick={() =>
+                              setExpandedTaskId(
+                                expandedTaskId === String(task.id)
+                                  ? ""
+                                  : String(task.id),
+                              )
+                            }
+                          >
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-2">
+                                {expandedTaskId === String(task.id) ? (
+                                  <ChevronUp className="size-4 text-slate-500" />
+                                ) : (
+                                  <ChevronDown className="size-4 text-slate-500" />
+                                )}
+                                <span>{task.title}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell
+                              onClick={(e) => e.stopPropagation()}
+                              onPointerDown={(e) => e.stopPropagation()}
                             >
-                              {task.title}
-                            </Link>
-                          </TableCell>
-                          <TableCell>{task.status}</TableCell>
-                          <TableCell>{task.priority}</TableCell>
-                          <TableCell>
-                            <Input
-                              type="date"
-                              value={task.start_date || ""}
-                              onChange={async (e) => {
-                                const { error } = await tasksApi.update(
-                                  task.id,
-                                  { start_date: e.target.value || null },
-                                );
-                                if (error) setError(error.message);
-                                else loadData();
-                              }}
-                              className="h-8 text-xs w-[130px]"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              type="date"
-                              value={task.deadline || ""}
-                              onChange={async (e) => {
-                                const { error } = await tasksApi.update(
-                                  task.id,
-                                  { deadline: e.target.value || null },
-                                );
-                                if (error) setError(error.message);
-                                else loadData();
-                              }}
-                              className="h-8 text-xs w-[130px]"
-                            />
-                          </TableCell>
-                          <TableCell>{task.assignee || "Unassigned"}</TableCell>
-                          <TableCell>{task.subtasks?.length || 0}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setSheetMode("task");
-                                  setEditingTaskId(task.id);
-                                  setTaskForm({ ...task });
-                                  setSheetOpen(true);
-                                }}
+                              <Select
+                                value={normalizeTaskStatus(task.status)}
+                                onValueChange={(status) =>
+                                  updateTaskStatus(task, status)
+                                }
                               >
-                                Edit
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setSheetMode("subtask");
-                                  setOpenSubtaskFor(task.id);
-                                  setSubtaskForm({
-                                    title: "",
-                                    task_id: task.id,
-                                  });
-                                  setSheetOpen(true);
+                                <SelectTrigger className="w-[125px] bg-white">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {taskStatusOptions.map((status) => (
+                                    <SelectItem key={status} value={status}>
+                                      {status}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell>{task.priority}</TableCell>
+                            <TableCell>
+                              <Input
+                                type="date"
+                                value={task.start_date || ""}
+                                onChange={async (e) => {
+                                  const { error } = await tasksApi.update(
+                                    task.id,
+                                    { start_date: e.target.value || null },
+                                  );
+                                  if (error) setError(error.message);
+                                  else loadData();
                                 }}
-                              >
-                                <Plus className="mr-2 size-4" />
-                                Add Subtask
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
+                                className="h-8 text-xs w-[130px]"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                type="date"
+                                value={task.deadline || ""}
+                                onChange={async (e) => {
+                                  const { error } = await tasksApi.update(
+                                    task.id,
+                                    { deadline: e.target.value || null },
+                                  );
+                                  if (error) setError(error.message);
+                                  else loadData();
+                                }}
+                                className="h-8 text-xs w-[130px]"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </TableCell>
+                            <TableCell>{task.assignee || "Unassigned"}</TableCell>
+                            <TableCell>{task.subtasks?.length || 0}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSheetMode("task");
+                                    setEditingTaskId(task.id);
+                                    setTaskForm({ ...task });
+                                    setSheetOpen(true);
+                                  }}
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSheetMode("subtask");
+                                    setOpenSubtaskFor(task.id);
+                                    setSubtaskForm({
+                                      title: "",
+                                      task_id: task.id,
+                                    });
+                                    setSheetOpen(true);
+                                  }}
+                                >
+                                  <Plus className="mr-2 size-4" />
+                                  Add Subtask
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                          {expandedTaskId === String(task.id) ? (
+                            <TableRow>
+                              <TableCell colSpan={8} className="bg-slate-50">
+                                <div className="space-y-3 p-3">
+                                  <div className="flex items-center justify-between">
+                                    <p className="text-sm font-medium text-slate-700">
+                                      Subtasks
+                                    </p>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSheetMode("subtask");
+                                        setOpenSubtaskFor(task.id);
+                                        setSubtaskForm({
+                                          title: "",
+                                          task_id: task.id,
+                                        });
+                                        setSheetOpen(true);
+                                      }}
+                                    >
+                                      <Plus className="mr-2 size-4" />
+                                      Add Subtask
+                                    </Button>
+                                  </div>
+                                  {(task.subtasks || []).length ? (
+                                    <div className="grid gap-2">
+                                      {task.subtasks.map((subtask) => (
+                                        <div
+                                          key={subtask.id}
+                                          className="rounded-lg border border-border bg-white px-3 py-2 text-sm text-black"
+                                        >
+                                          {subtask.title}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="text-sm text-slate-500">
+                                      No subtasks yet.
+                                    </p>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ) : null}
+                        </Fragment>
                       ))}
                     </TableBody>
                   </Table>
@@ -736,9 +831,11 @@ export default function ProjectDetailPage() {
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="To Do">To Do</SelectItem>
-                    <SelectItem value="Ongoing">Ongoing</SelectItem>
-                    <SelectItem value="Completed">Completed</SelectItem>
+                    {taskStatusOptions.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {status}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <Select
