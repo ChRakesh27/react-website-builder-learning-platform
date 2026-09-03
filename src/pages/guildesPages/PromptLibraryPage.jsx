@@ -1,9 +1,11 @@
 import CopyBox from "../../components/CopyBox.jsx";
 import PageHero from "../../components/PageHero.jsx";
+import { useScrollReveal } from "../../hooks/useScrollReveal.js";
 import { promptGroups } from "../../data/guides.js";
 import { sections } from "../../data/sections.js";
 
 export default function PromptLibraryPage() {
+  const [ref, isVisible] = useScrollReveal();
   return (
     <>
       <PageHero
@@ -11,6 +13,7 @@ export default function PromptLibraryPage() {
         title="Copy prompts to generate layouts, code and UI improvements"
         description="Students can copy these prompts into AI tools and learn how to ask for better website sections and React code."
       />
+      <div ref={ref} className={`section-block-wrap ${isVisible ? 'animate-fade-in-up' : ''}`}>
       <section className="section-block">
         <div className="grid two">
           {promptGroups.map((group) => (
@@ -44,6 +47,7 @@ export default function PromptLibraryPage() {
           ))}
         </div>
       </section>
+      </div>
     </>
   );
 }

@@ -1,5 +1,6 @@
 import CopyBox from "../../components/CopyBox.jsx";
 import PageHero from "../../components/PageHero.jsx";
+import { useScrollReveal } from "../../hooks/useScrollReveal.js";
 
 const cssTokens = `:root {
   --primary: #2563eb;
@@ -16,6 +17,7 @@ const cssTokens = `:root {
 }`;
 
 export default function StyleGuidePage() {
+  const [ref, isVisible] = useScrollReveal();
   const colors = [
     ["Primary", "#2563eb"],
     ["Secondary", "#7c3aed"],
@@ -33,6 +35,7 @@ export default function StyleGuidePage() {
         title="Colors, spacing, radius, shadows and UI rules"
         description="Use this page as the visual design guide for the project. Students can learn how to keep UI consistent."
       />
+      <div ref={ref} className={`section-block-wrap ${isVisible ? 'animate-fade-in-up' : ''}`}>
 
       <section id="style-colors" className="section-block">
         <div className="section-heading">
@@ -77,6 +80,7 @@ export default function StyleGuidePage() {
         </div>
         <CopyBox title="CSS Design Tokens" text={cssTokens} />
       </section>
+      </div>
     </>
   );
 }

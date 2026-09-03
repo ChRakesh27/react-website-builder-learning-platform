@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { aiApi } from '../../api/ai';
 import { auth } from '../../api/auth';
 import { Send, Bot, User, Loader2 } from 'lucide-react';
+import { useToast } from '../../components/Toast.jsx';
 
 export default function AIPage() {
   const [messages, setMessages] = useState([
@@ -11,6 +12,7 @@ export default function AIPage() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const toast = useToast();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -41,6 +43,7 @@ export default function AIPage() {
       setMessages(prev => [...prev, { role: 'assistant', content: response.reply }]);
     } catch (error) {
       console.error("AI Error:", error);
+      toast('Failed to get AI response. Please try again.', 'error');
       setMessages(prev => [...prev, { 
         role: 'assistant', 
         content: 'Sorry, I encountered an error while processing your request. Make sure the AI backend is running on localhost:5000.' 

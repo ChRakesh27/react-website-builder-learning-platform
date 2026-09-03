@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { projectsApi } from "../../api/projects.js";
 import { tasksApi } from "../../api/tasks.js";
+import { useToast } from "../../components/Toast.jsx";
 import { Button } from "../../components/ui/button.jsx";
 import {
   Card,
@@ -27,15 +28,42 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table.jsx";
+import { useScrollReveal } from "../../hooks/useScrollReveal.js";
+
+function Skeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="h-24 bg-slate-100 rounded-3xl skeleton" />
+      <div className="rounded-xl border border-border bg-white p-6 space-y-4">
+        <div className="skeleton skeleton-line" style={{ width: '30%' }} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-9 bg-slate-100 rounded-lg skeleton" />
+          ))}
+        </div>
+      </div>
+      <div className="rounded-xl border border-border bg-white p-6 space-y-3">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="flex gap-4">
+            <div className="h-4 bg-slate-100 rounded skeleton" style={{ width: `${20 + Math.random() * 30}%` }} />
+            <div className="h-4 bg-slate-100 rounded skeleton" style={{ width: `${20 + Math.random() * 30}%` }} />
+            <div className="h-4 bg-slate-100 rounded skeleton" style={{ width: `${10 + Math.random() * 20}%` }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function ReportsPage() {
   const [projects, setProjects] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const toast = useToast();
+  const [tableRef, tableVisible] = useScrollReveal();
 
-  // Filters
-  const [selectedProjectIds, setSelectedProjectIds] = useState([]); // [] means all
+  const [selectedProjectIds, setSelectedProjectIds] = useState([]);
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [startDate, setStartDate] = useState("");
@@ -56,49 +84,37 @@ export default function ReportsPage() {
   useEffect(() => {
     async function loadData() {
       setLoading(true);
-      const [pRes, tRes] = await Promise.all([
-        projectsApi.list(),
-        tasksApi.list(),
-      ]);
+      try {
+        const [pRes, tRes] = await Promise.all([
+          projectsApi.list(),
+          tasksApi.list(),
+        ]);
 
-      if (pRes.error || tRes.error) {
-        setError(
-          pRes.error?.message || tRes.error?.message || "Failed to load data.",
-        );
-      } else {
-        setProjects(pRes.data || []);
-        setTasks(tRes.data || []);
+        if (pRes.error || tRes.error) {
+          setError(pRes.error?.message || tRes.error?.message || "Failed to load data.");
+          toast('Failed to load reports data', 'error');
+        } else {
+          setProjects(pRes.data || []);
+          setTasks(tRes.data || []);
+        }
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load data.");
+        toast('Failed to load reports data', 'error');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     loadData();
-  }, []);
+  }, [toast]);
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
-      // Filter by Project (Multiple)
-      if (
-        selectedProjectIds.length > 0 &&
-        !selectedProjectIds.includes(String(task.project_id))
-      ) {
-        return false;
-      }
-
-      // Filter by Status
-      if (selectedStatus !== "all" && task.status !== selectedStatus) {
-        return false;
-      }
-
-      // Filter by Date
+      if (selectedProjectIds.length > 0 && !selectedProjectIds.includes(String(task.project_id))) return false;
+      if (selectedStatus !== "all" && task.status !== selectedStatus) return false;
       const taskDate = task.start_date || task.created_at;
-
-      if (startDate && taskDate) {
-        if (new Date(taskDate) < new Date(startDate)) return false;
-      }
-      if (endDate && taskDate) {
-        if (new Date(taskDate) > new Date(endDate)) return false;
-      }
-
+      if (startDate && taskDate) { if (new Date(taskDate) < new Date(startDate)) return false; }
+      if (endDate && taskDate) { if (new Date(taskDate) > new Date(endDate)) return false; }
       return true;
     });
   }, [tasks, selectedProjectIds, selectedStatus, startDate, endDate]);
@@ -108,34 +124,31 @@ export default function ReportsPage() {
   }, [tasks]);
 
   const exportToExcel = () => {
-    const dataToExport = filteredTasks.map((task) => {
-      const proj = projects.find(
-        (p) => String(p.id) === String(task.project_id),
-      );
-      return {
-        "Task ID": task.id,
-        Title: task.title,
-        Project: proj ? proj.name : "Unknown",
-        Status: task.status,
-        Priority: task.priority,
-        Type: task.type,
-        "Start Date":
-          task.start_date || task.created_at
-            ? new Date(task.start_date || task.created_at).toLocaleDateString()
-            : "",
-        Deadline: task.deadline
-          ? new Date(task.deadline).toLocaleDateString()
-          : "",
-        Assignee: task.assignee || "Unassigned",
-      };
-    });
-
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Reports");
-
-    const dateStr = new Date().toISOString().split("T")[0];
-    XLSX.writeFile(workbook, `Tasks_Report_${dateStr}.xlsx`);
+    try {
+      const dataToExport = filteredTasks.map((task) => {
+        const proj = projects.find((p) => String(p.id) === String(task.project_id));
+        return {
+          "Task ID": task.id,
+          Title: task.title,
+          Project: proj ? proj.name : "Unknown",
+          Status: task.status,
+          Priority: task.priority,
+          Type: task.type,
+          "Start Date": task.start_date || task.created_at ? new Date(task.start_date || task.created_at).toLocaleDateString() : "",
+          Deadline: task.deadline ? new Date(task.deadline).toLocaleDateString() : "",
+          Assignee: task.assignee || "Unassigned",
+        };
+      });
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Reports");
+      const dateStr = new Date().toISOString().split("T")[0];
+      XLSX.writeFile(workbook, `Tasks_Report_${dateStr}.xlsx`);
+      toast('Report exported successfully', 'success');
+    } catch (err) {
+      console.error(err);
+      toast('Failed to export report', 'error');
+    }
   };
 
   const toggleProjectSelection = (id) => {
@@ -146,30 +159,25 @@ export default function ReportsPage() {
     }
   };
 
-  if (loading)
-    return (
-      <div className="p-8 text-center text-muted-foreground">
-        Loading reports data...
-      </div>
-    );
+  if (loading) return <Skeleton />;
   if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
-          <p className="text-muted-foreground mt-1">
-            Filter and export your project tasks data.
-          </p>
+      <div className="animate-fade-in-up">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
+            <p className="text-muted-foreground mt-1">Filter and export your project tasks data.</p>
+          </div>
+          <Button onClick={exportToExcel} className="flex items-center gap-2">
+            <Download className="w-4 h-4" />
+            Export to Excel
+          </Button>
         </div>
-        <Button onClick={exportToExcel} className="flex items-center gap-2">
-          <Download className="w-4 h-4" />
-          Export to Excel
-        </Button>
       </div>
 
-      <Card className="overflow-visible">
+      <Card className="overflow-visible animate-fade-in-down">
         <CardHeader>
           <CardTitle>Filters</CardTitle>
           <CardDescription>Narrow down the tasks data</CardDescription>
@@ -179,46 +187,19 @@ export default function ReportsPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Projects</label>
               <div className="relative" ref={dropdownRef}>
-                <div
-                  className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm cursor-pointer hover:bg-accent/50"
-                  onClick={() =>
-                    setIsProjectDropdownOpen(!isProjectDropdownOpen)
-                  }
-                >
-                  <span className="truncate">
-                    {selectedProjectIds.length === 0
-                      ? "All Projects"
-                      : `${selectedProjectIds.length} selected`}
-                  </span>
+                <div className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm cursor-pointer hover:bg-accent/50" onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}>
+                  <span className="truncate">{selectedProjectIds.length === 0 ? "All Projects" : `${selectedProjectIds.length} selected`}</span>
                   <ChevronDown className="h-4 w-4 opacity-50" />
                 </div>
-
                 {isProjectDropdownOpen && (
                   <div className="absolute top-full left-0 z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md p-1">
-                    <div
-                      className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm"
-                      onClick={() => setSelectedProjectIds([])}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedProjectIds.length === 0}
-                        readOnly
-                        className="rounded border-primary text-primary focus:ring-primary"
-                      />
+                    <div className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm" onClick={() => setSelectedProjectIds([])}>
+                      <input type="checkbox" checked={selectedProjectIds.length === 0} readOnly className="rounded border-primary text-primary focus:ring-primary" />
                       <span>All Projects</span>
                     </div>
                     {projects.map((p) => (
-                      <div
-                        key={p.id}
-                        className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm"
-                        onClick={() => toggleProjectSelection(String(p.id))}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedProjectIds.includes(String(p.id))}
-                          readOnly
-                          className="rounded border-primary text-primary focus:ring-primary"
-                        />
+                      <div key={p.id} className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm" onClick={() => toggleProjectSelection(String(p.id))}>
+                        <input type="checkbox" checked={selectedProjectIds.includes(String(p.id))} readOnly className="rounded border-primary text-primary focus:ring-primary" />
                         <span className="truncate">{p.name}</span>
                       </div>
                     ))}
@@ -226,48 +207,29 @@ export default function ReportsPage() {
                 )}
               </div>
             </div>
-
             <div className="space-y-2">
               <label className="text-sm font-medium">Status</label>
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="All Statuses" />
-                </SelectTrigger>
+                <SelectTrigger className="h-9"><SelectValue placeholder="All Statuses" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
-                  {uniqueStatuses.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {status}
-                    </SelectItem>
-                  ))}
+                  {uniqueStatuses.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
               <label className="text-sm font-medium">Start Date</label>
-              <Input
-                type="date"
-                className="h-9"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
+              <Input type="date" className="h-9" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
             </div>
-
             <div className="space-y-2">
               <label className="text-sm font-medium">End Date</label>
-              <Input
-                type="date"
-                className="h-9"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
+              <Input type="date" className="h-9" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card ref={tableRef} className={tableVisible ? 'animate-scale-in' : ''}>
         <CardHeader>
           <CardTitle>Results ({filteredTasks.length})</CardTitle>
         </CardHeader>
@@ -286,33 +248,18 @@ export default function ReportsPage() {
               <TableBody>
                 {filteredTasks.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="text-center py-6 text-muted-foreground"
-                    >
-                      No tasks match the selected filters.
-                    </TableCell>
+                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">No tasks match the selected filters.</TableCell>
                   </TableRow>
                 ) : (
                   filteredTasks.map((task) => {
-                    const proj = projects.find(
-                      (p) => String(p.id) === String(task.project_id),
-                    );
+                    const proj = projects.find((p) => String(p.id) === String(task.project_id));
                     return (
                       <TableRow key={task.id}>
-                        <TableCell className="font-medium">
-                          {task.title}
-                        </TableCell>
+                        <TableCell className="font-medium">{task.title}</TableCell>
                         <TableCell>{proj?.name || "Unknown"}</TableCell>
                         <TableCell>{task.status}</TableCell>
                         <TableCell>{task.priority}</TableCell>
-                        <TableCell>
-                          {task.start_date || task.created_at
-                            ? new Date(
-                                task.start_date || task.created_at,
-                              ).toLocaleDateString()
-                            : "-"}
-                        </TableCell>
+                        <TableCell>{task.start_date || task.created_at ? new Date(task.start_date || task.created_at).toLocaleDateString() : "-"}</TableCell>
                       </TableRow>
                     );
                   })

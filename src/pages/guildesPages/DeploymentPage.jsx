@@ -1,8 +1,10 @@
 import CopyBox from "../../components/CopyBox.jsx";
 import PageHero from "../../components/PageHero.jsx";
+import { useScrollReveal } from "../../hooks/useScrollReveal.js";
 import { deploymentSteps } from "../../data/guides.js";
 
 export default function DeploymentPage() {
+  const [ref, isVisible] = useScrollReveal();
   return (
     <>
       <PageHero
@@ -10,6 +12,7 @@ export default function DeploymentPage() {
         title="From local project to live website"
         description="A clear deployment flow for React + Vite projects. Students can follow the commands and final checks."
       />
+      <div ref={ref} className={`section-block-wrap ${isVisible ? 'animate-fade-in-up' : ''}`}>
       <div className="grid two">
         {deploymentSteps.map((step) => (
           <article className="command-card" key={step.title}>
@@ -27,6 +30,7 @@ export default function DeploymentPage() {
           hosting setup.
         </p>
       </section>
+      </div>
     </>
   );
 }

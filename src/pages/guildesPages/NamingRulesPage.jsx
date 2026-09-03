@@ -1,5 +1,6 @@
 import CopyBox from "../../components/CopyBox.jsx";
 import PageHero from "../../components/PageHero.jsx";
+import { useScrollReveal } from "../../hooks/useScrollReveal.js";
 import { namingRules } from "../../data/guides.js";
 
 const structure = `src/
@@ -23,6 +24,7 @@ const structure = `src/
     └── formatDate.js`;
 
 export default function NamingRulesPage() {
+  const [ref, isVisible] = useScrollReveal();
   return (
     <>
       <PageHero
@@ -30,6 +32,7 @@ export default function NamingRulesPage() {
         title="camelCase, PascalCase, kebab-case and uppercase rules"
         description="Students learn how to name files, folders, components, variables, functions, routes, images and environment variables."
       />
+      <div ref={ref} className={`section-block-wrap ${isVisible ? 'animate-fade-in-up' : ''}`}>
       <section className="section-block">
         <div className="table-wrap">
           <table>
@@ -83,6 +86,7 @@ export default function NamingRulesPage() {
         </article>
       </section>
       <CopyBox title="Recommended Project Structure" text={structure} />
+      </div>
     </>
   );
 }

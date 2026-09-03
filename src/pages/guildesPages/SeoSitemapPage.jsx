@@ -1,5 +1,6 @@
 import CopyBox from "../../components/CopyBox.jsx";
 import PageHero from "../../components/PageHero.jsx";
+import { useScrollReveal } from "../../hooks/useScrollReveal.js";
 import { seoSteps } from "../../data/guides.js";
 
 const metaExample = `<title>Website Builder Learning Platform</title>
@@ -22,6 +23,7 @@ Allow: /
 Sitemap: https://your-domain.com/sitemap.xml`;
 
 export default function SeoSitemapPage() {
+  const [ref, isVisible] = useScrollReveal();
   return (
     <>
       <PageHero
@@ -29,6 +31,7 @@ export default function SeoSitemapPage() {
         title="Make the website understandable for Google and users"
         description="Students learn titles, descriptions, headings, image alt text, sitemap.xml, robots.txt and Google Search Console submission flow."
       />
+      <div ref={ref} className={`section-block-wrap ${isVisible ? 'animate-fade-in-up' : ''}`}>
       <section className="section-block">
         <div className="timeline-list">
           {seoSteps.map((step, index) => (
@@ -47,6 +50,7 @@ export default function SeoSitemapPage() {
         <CopyBox title="robots.txt Example" text={robotsExample} />
       </section>
       <CopyBox title="sitemap.xml Example" text={sitemapExample} />
+      </div>
     </>
   );
 }

@@ -1,9 +1,11 @@
 import CopyBox from "../../components/CopyBox.jsx";
 import PageHero from "../../components/PageHero.jsx";
+import { useScrollReveal } from "../../hooks/useScrollReveal.js";
 import { codeExamples } from "../../data/guides.js";
 import { sections } from "../../data/sections.js";
 
 export default function CodeLabPage() {
+  const [ref, isVisible] = useScrollReveal();
   return (
     <>
       <PageHero
@@ -11,6 +13,7 @@ export default function CodeLabPage() {
         title="Beginner-friendly React code examples"
         description="Students can study reusable components, data mapping, folder structure, routing, sitemap and section code."
       />
+      <div ref={ref} className={`section-block-wrap ${isVisible ? 'animate-fade-in-up' : ''}`}>
       <section className="section-block">
         <div className="grid two">
           {codeExamples.map((item) => (
@@ -33,6 +36,7 @@ export default function CodeLabPage() {
           ))}
         </div>
       </section>
+      </div>
     </>
   );
 }

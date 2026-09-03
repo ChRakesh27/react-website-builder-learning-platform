@@ -1,4 +1,5 @@
 import PageHero from "../../components/PageHero.jsx";
+import { useScrollReveal } from "../../hooks/useScrollReveal.js";
 import {
   breakpoints,
   spacingScale,
@@ -6,6 +7,7 @@ import {
 } from "../../data/guides.js";
 
 export default function TypographyPage() {
+  const [ref, isVisible] = useScrollReveal();
   return (
     <>
       <PageHero
@@ -13,6 +15,7 @@ export default function TypographyPage() {
         title="Responsive typography for mobile, tablet and desktop"
         description="Students can use this page to decide heading sizes, body sizes, button sizes, line-height, spacing and breakpoint checks."
       />
+      <div ref={ref} className={`section-block-wrap ${isVisible ? 'animate-fade-in-up' : ''}`}>
 
       <section className="section-block">
         <div className="section-heading">
@@ -101,6 +104,7 @@ export default function TypographyPage() {
           ))}
         </div>
       </section>
+      </div>
     </>
   );
 }
