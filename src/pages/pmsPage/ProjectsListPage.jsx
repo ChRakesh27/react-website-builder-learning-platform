@@ -2,6 +2,7 @@ import {
   CalendarDays,
   CircleDot,
   FolderKanban,
+  Plus,
   Trash2,
   UserRound,
 } from "lucide-react";
@@ -63,16 +64,13 @@ function ProjectCard({ project, onDelete }) {
               <FolderKanban className="size-5" />
             </div>
             <div className="min-w-0">
-              <CardDescription className="font-medium uppercase tracking-wider">
-                {project.key || "Project"}
-              </CardDescription>
-              <CardTitle className="truncate text-lg">{project.name}</CardTitle>
+              <CardTitle className=" text-lg">{project.name}</CardTitle>
             </div>
           </div>
           <StatusBadge status={project.status} />
         </div>
       </CardHeader>
-      <CardContent className="space-y-5 pt-5">
+      <CardContent className="space-y-5 ">
         <div className="grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">
           <div className="flex items-center gap-2">
             <UserRound className="size-4 shrink-0" />
@@ -149,6 +147,12 @@ export default function ProjectsListPage() {
             </p>
           </div>
         </div>
+        <Button asChild className="mt-5 sm:mt-0">
+          <Link to="/projects/new" className="flex justify-center items-center gap-2">
+            <Plus className="size-4" />
+            New project
+          </Link>
+        </Button>
       </section>
 
       <div className="flex items-center justify-between gap-3">
