@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useScrollReveal } from "../../hooks/useScrollReveal.js";
 import PageHero from "../../components/PageHero.jsx";
 import SectionCard from "../../components/SectionCard.jsx";
 import { sectionCategories, sections } from "../../data/sections.js";
@@ -6,13 +7,13 @@ import { sectionCategories, sections } from "../../data/sections.js";
 export default function SectionsPage() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
+  const [ref, isVisible] = useScrollReveal();
 
   const filtered = useMemo(() => {
     return sections.filter((section) => {
       const matchCategory = category === "All" || section.category === category;
       const matchQuery = `${section.title} ${section.intro} ${section.category}`
-        .toLowerCase()
-        .includes(query.toLowerCase());
+        .toLowerCase().includes(query.toLowerCase());
       return matchCategory && matchQuery;
     });
   }, [query, category]);
@@ -25,7 +26,7 @@ export default function SectionsPage() {
         description="Students can learn when to use each section, how to design it, what mistakes to avoid, and how to generate it using AI."
       />
 
-      <div className="toolbar">
+      <div className="toolbar animate-fade-in-down">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -44,12 +45,14 @@ export default function SectionsPage() {
         </div>
       </div>
 
-      <div className="result-count">
+      <div className="result-count scroll-reveal">
         Showing {filtered.length} section guides
       </div>
-      <div className="grid three">
-        {filtered.map((section) => (
-          <SectionCard key={section.slug} section={section} />
+      <div ref={ref} className="grid three">
+        {filtered.map((section, i) => (
+          <div key={section.slug} className="scroll-reveal" style={{ transitionDelay: `${i * 60}ms`, animationFillMode: 'both', animation: isVisible ? `fadeInUp 0.4s ease-out ${i * 60}ms both` : 'none' }}>
+            <SectionCard section={section} />
+          </div>
         ))}
       </div>
     </>

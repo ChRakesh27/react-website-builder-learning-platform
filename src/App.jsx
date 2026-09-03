@@ -1,4 +1,5 @@
 import { Route, Routes } from "react-router-dom";
+import { ToastProvider } from "./components/Toast.jsx";
 import AppLayout from "./components/AppLayout.jsx";
 import LoginPage from "./pages/authPages/LoginPage";
 import AIPage from "./pages/pmsPage/AIPage.jsx";
@@ -16,22 +17,24 @@ import WorkspaceSearchPage from "./pages/pmsPage/WorkspaceSearchPage.jsx";
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<AppLayout />}>
-        <Route index element={<HomePage />} />
-        <Route path="projects" element={<ProjectsListPage />} />
-        <Route path="projects/new" element={<ProjectCreatePage />} />
-        <Route path="projects/:id" element={<ProjectDetailPage />} />
-        <Route path="projects/:id/tasks/:taskId" element={<TaskDetailPage />} />
-        <Route path="employees" element={<EmployeesPage />} />
-        <Route path="employees/new" element={<EmployeeCreatePage />} />
-        <Route path="employees/:id" element={<EmployeeDetailPage />} />
-        <Route path="employees/:id/edit" element={<EmployeeEditPage />} />
-        <Route path="search" element={<WorkspaceSearchPage />} />
-        <Route path="ai" element={<AIPage />} />
-        <Route path="reports" element={<ReportsPage />} />
-      </Route>
-      <Route path="/login" element={<LoginPage />} />
-    </Routes>
+    <ToastProvider>
+      <Routes>
+        <Route path="/" element={<AppLayout />}>
+          <Route index element={<HomePage />} />
+          <Route path="projects" element={<ProjectsListPage />} />
+          <Route path="projects/new" element={<ProjectCreatePage />} />
+          <Route path="projects/:id" element={<ProjectDetailPage />} />
+          <Route path="projects/:id/tasks/:taskId" element={<TaskDetailPage />} />
+          <Route path="employees" element={<EmployeesPage />} />
+          <Route path="employees/new" element={<EmployeeCreatePage />} />
+          <Route path="employees/:id" element={<EmployeeDetailPage />} />
+          <Route path="employees/:id/edit" element={<EmployeeEditPage />} />
+          <Route path="search" element={<WorkspaceSearchPage />} />
+          <Route path="ai" element={<AIPage />} />
+          <Route path="reports" element={<ReportsPage />} />
+        </Route>
+        <Route path="/login" element={<LoginPage />} />
+      </Routes>
+    </ToastProvider>
   );
 }
