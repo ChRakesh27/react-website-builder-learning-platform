@@ -1,11 +1,16 @@
 import {
-  Database,
+  ArrowLeft,
+  CalendarDays,
   ChevronDown,
   ChevronUp,
+  ClipboardList,
+  Database,
   FileText,
+  FolderKanban,
   LayoutGrid,
   List,
   ListTodo,
+  Pencil,
   Plug,
   Plus,
   PlusCircle,
@@ -96,6 +101,7 @@ export default function ProjectDetailPage() {
 
   const [editForm, setEditForm] = useState({
     name: "",
+    key: "",
     start_date: "",
     deadline: "",
     status: "Planning",
@@ -143,6 +149,7 @@ export default function ProjectDetailPage() {
     if (p.data) {
       setEditForm({
         name: p.data.name || "",
+        key: p.data.key || "",
         start_date: p.data.start_date || "",
         deadline: p.data.deadline || "",
         status: p.data.status || "Planning",
@@ -273,67 +280,74 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="space-y-6">
+      <Link to="/projects">
+        <Button variant="ghost" size="sm">
+          <ArrowLeft className="size-4" />
+          Back
+        </Button>
+      </Link>
       <section className="page-hero">
-        <div>
-          <p className="eyebrow">Project Detail - {project.status}</p>
-          <h1 className="text-xl md:text-2xl">{project.name}</h1>
-          <p>{project.description || "No project description yet."}</p>
-          <div className="mt-2 flex gap-4 text-sm text-slate-500">
-            {project.start_date && <span>Start: {project.start_date}</span>}
-            {project.deadline && <span>Deadline: {project.deadline}</span>}
+        <div className="min-w-0">
+          <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
+            <FolderKanban className="size-4" />
+            <span>Project workspace</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="!text-3xl md:!text-4xl">{project.name}</h1>
+            <span className="rounded-full bg-slate-900 px-2.5 py-1 text-xs font-medium text-white">
+              {project.status || "Planning"}
+            </span>
+          </div>
+          <p className="mt-2">
+            {project.description || "No project description yet."}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3 text-sm text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarDays className="size-4" />
+              Start {project.start_date || "Not set"}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarDays className="size-4" />
+              Due {project.deadline || "Not set"}
+            </span>
           </div>
         </div>
-        <div className="button-row">
-          <Link to="/projects">
-            <Button variant="outline">Back</Button>
-          </Link>
+        <div className="button-row shrink-0">
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             onClick={() => {
               setSheetMode("edit");
               setSheetOpen(true);
             }}
           >
-            Edit
+            <Pencil className="size-4" />
           </Button>
+
           <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              setSheetMode("member");
-              setMemberForm(emptyMember);
-              setSheetOpen(true);
-            }}
-          >
-            <PlusCircle className="mr-2 size-4" />
-            Assign Employee
-          </Button>
-          <Button
-            variant="outline"
+            variant="ghost"
             type="button"
             onClick={async () => {
               await projectsApi.remove(id);
               navigate("/projects");
             }}
           >
-            Delete
+            <Trash2 className="size-4" />
           </Button>
         </div>
       </section>
 
-      <section className="flex flex-wrap gap-2 rounded-2xl border border-border bg-white p-2 shadow-sm">
+      <section className="flex flex-wrap gap-1  bg-white p-1.5 ">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
             <Button
               key={tab.id}
               type="button"
-              variant={activeTab === tab.id ? "default" : "outline"}
+              variant={activeTab === tab.id ? "default" : "ghost"}
               onClick={() => setActiveTab(tab.id)}
-              className="rounded-full"
             >
-              <Icon className="mr-2 size-4" />
+              <Icon className="mr-1 size-4" />
               {tab.label}
             </Button>
           );
@@ -344,8 +358,11 @@ export default function ProjectDetailPage() {
 
       {activeTab === "description" ? (
         <Card>
-          <CardHeader>
-            <CardTitle>Description</CardTitle>
+          <CardHeader className="border-b border-border/70">
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="size-4 text-muted-foreground" />
+              Description
+            </CardTitle>
             <CardDescription>
               Edit the project description here.
             </CardDescription>
@@ -366,84 +383,82 @@ export default function ProjectDetailPage() {
       ) : null}
 
       {activeTab === "team" ? (
-        <div className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
-          <Card>
-            <CardHeader>
-              <CardTitle>Assigned Employees</CardTitle>
-              <CardDescription>
-                Employees assigned to this project.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {members.length ? (
-                members.map((member) => (
-                  <div
-                    key={member.id}
-                    className="flex items-center justify-between rounded-xl border border-border px-4 py-3"
+        <Card>
+          <CardHeader className="border-b border-border/70">
+            <CardTitle className="">
+              <div className="flex items-center gap-2 justify-between w-full">
+                <div className="flex items-center gap-2">
+                  <Users className="size-4 text-muted-foreground" />
+                  Assigned Employees
+                </div>
+                <div className="">
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setSheetMode("member");
+                      setMemberForm(emptyMember);
+                      setSheetOpen(true);
+                    }}
                   >
-                    <div>
-                      <p className="font-medium text-black">{member.name}</p>
-                      <p className="text-sm text-black">
-                        {member.role || "Employee"}
-                        {member.email ? ` • ${member.email}` : ""}
-                      </p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      type="button"
-                      onClick={async () => {
-                        await projectMembersApi.remove(member.id);
-                        await loadData();
-                      }}
-                    >
-                      <Trash2 className="mr-2 size-4" />
-                      Remove
-                    </Button>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-slate-500">
-                  No employees added yet.
-                </p>
-              )}
-            </CardContent>
-          </Card>
+                    <PlusCircle className="mr-2 size-4" />
+                    Assign Employee
+                  </Button>
+                </div>
+              </div>
+            </CardTitle>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Add Employee</CardTitle>
-              <CardDescription>
-                Assign an employee to this project from the sidebar.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                type="button"
-                onClick={() => {
-                  setSheetMode("member");
-                  setMemberForm(emptyMember);
-                  setSheetOpen(true);
-                }}
-              >
-                <PlusCircle className="mr-2 size-4" />
-                Assign Employee
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {members.length ? (
+              members.map((member) => (
+                <div
+                  key={member.id}
+                  className="flex items-center justify-between rounded-xl border border-border px-4 py-3"
+                >
+                  <div>
+                    <p className="font-medium text-black">{member.name}</p>
+                    <p className="text-sm text-black">
+                      {member.role || "Employee"}
+                      {member.email ? ` • ${member.email}` : ""}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={async () => {
+                      await projectMembersApi.remove(member.id);
+                      await loadData();
+                    }}
+                  >
+                    <Trash2 className="mr-2 size-4" />
+                    Remove
+                  </Button>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-slate-500">No employees added yet.</p>
+            )}
+          </CardContent>
+        </Card>
       ) : null}
 
       {activeTab === "task" ? (
         <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
+          <CardHeader className="border-b border-border/70">
+            <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <CardTitle>Tasks</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <ClipboardList className="size-4 text-muted-foreground" />
+                  Tasks
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-normal text-slate-600">
+                    {tasks.length}
+                  </span>
+                </CardTitle>
                 <CardDescription>
                   Use the sidebar to create tasks and subtasks.
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-md">
+              <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1">
                 <Button
                   variant={tasksViewMode === "grid" ? "default" : "ghost"}
                   size="sm"
@@ -466,7 +481,7 @@ export default function ProjectDetailPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <Button
                 type="button"
                 onClick={() => {
@@ -477,9 +492,11 @@ export default function ProjectDetailPage() {
                 }}
               >
                 <PlusCircle className="mr-2 size-4" />
-                Create Task
+                New task
               </Button>
-             
+              <p className="text-xs text-muted-foreground">
+                Click a task row to view its subtasks.
+              </p>
             </div>
 
             {tasks.length ? (
@@ -488,14 +505,47 @@ export default function ProjectDetailPage() {
                   {tasks.map((task) => (
                     <div
                       key={task.id}
-                      className="space-y-3 rounded-xl border border-border p-4 bg-white shadow-sm"
+                      className="space-y-4 rounded-xl border border-border bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <Link to={`/projects/${id}/tasks/${task.id}`}>
-                          <Button variant="outline" className="justify-start">
-                            {task.title} - {task.status} - {task.priority}
-                          </Button>
-                        </Link>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+                            <ClipboardList className="size-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-slate-900">
+                              {task.title}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {task.priority || "Medium"} priority
+                            </p>
+                          </div>
+                        </div>
+                        <Select
+                          value={normalizeTaskStatus(task.status)}
+                          onValueChange={(status) =>
+                            updateTaskStatus(task, status)
+                          }
+                        >
+                          <SelectTrigger className="w-[120px] shrink-0 bg-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {taskStatusOptions.map((status) => (
+                              <SelectItem key={status} value={status}>
+                                {status}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/70 pt-3">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <CalendarDays className="size-3.5" />
+                          <span>{task.deadline || "No deadline"}</span>
+                          <span className="text-slate-300">|</span>
+                          <span>{task.subtasks?.length || 0} subtasks</span>
+                        </div>
                         <div className="flex gap-2">
                           <Button
                             type="button"
@@ -508,7 +558,8 @@ export default function ProjectDetailPage() {
                               setSheetOpen(true);
                             }}
                           >
-                            Edit Task
+                            <Pencil className="size-3.5" />
+                            Edit
                           </Button>
                           <Button
                             type="button"
@@ -530,8 +581,9 @@ export default function ProjectDetailPage() {
                         {(task.subtasks || []).map((subtask) => (
                           <div
                             key={subtask.id}
-                            className="rounded-lg border border-border px-3 py-2 text-sm text-black bg-slate-50"
+                            className="flex items-center gap-2 rounded-lg border border-border bg-slate-50 px-3 py-2 text-sm text-slate-700"
                           >
+                            <CircleDot className="size-3.5 text-slate-400" />
                             {subtask.title}
                           </div>
                         ))}
@@ -632,7 +684,9 @@ export default function ProjectDetailPage() {
                                 onClick={(e) => e.stopPropagation()}
                               />
                             </TableCell>
-                            <TableCell>{task.assignee || "Unassigned"}</TableCell>
+                            <TableCell>
+                              {task.assignee || "Unassigned"}
+                            </TableCell>
                             <TableCell>{task.subtasks?.length || 0}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
@@ -917,7 +971,11 @@ export default function ProjectDetailPage() {
                   e.preventDefault();
                   try {
                     console.log("=== STARTING PROJECT UPDATE ===");
-                    const payload = { ...editForm };
+                    const payload = {
+                      ...editForm,
+                      // projectsApi.update uses upsert, so preserve required fields.
+                      key: project.key || editForm.key,
+                    };
                     if (!payload.start_date) payload.start_date = null;
                     if (!payload.deadline) payload.deadline = null;
 
